@@ -1,0 +1,7 @@
+# Server
+
+Backend infrastructure for SovereignMind.
+
+This folder contains APIs, AI services, simulation engines, databases, authentication, and real-time coordination systems powering the platform’s core intelligence and crisis response capabilities.
+
+Designed for scalability, security, and distributed processing.
