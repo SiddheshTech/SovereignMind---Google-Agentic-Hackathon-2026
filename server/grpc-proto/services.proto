@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package sovereignmind;
+
+service SovereignMindService {
+  // Sovereignty Genome Engine
+  rpc GetSovereigntyGenome (GenomeRequest) returns (GenomeResponse);
+  rpc SearchGenomeTraits (GenomeSearchRequest) returns (GenomeSearchResponse);
+
+  // Autonomous Constitutional AI Layer
+  rpc RunConstitutionalEvaluation (ConstitutionalRequest) returns (ConstitutionalResponse);
+
+  // Synthetic Civilization Sandbox
+  rpc StartSandboxSimulation (SandboxRequest) returns (stream SandboxTick);
+
+  // Emergency Contracting Autopilot
+  rpc DraftEmergencyContract (ProcurementRequest) returns (ProcurementResponse);
+
+  // Self-Improving Agent Loop / Autonomous Prompt Optimization
+  rpc OptimizePrompt (PromptOptimizeRequest) returns (PromptOptimizeResponse);
+}
+
+// Sovereignty Genome Messages
+message GenomeRequest {
+  string country_code = 1;
+}
+
+message Trait {
+  string id = 1;
+  string name = 2;
+  string category = 3; // REG (Resilience), FRS (Fragility), SAT (Adaptation), IRP (Recovery)
+  double score = 4;    // 0.0 to 1.0
+  string description = 5;
+}
+
+message GenomeResponse {
+  string country_code = 1;
+  string nation_name = 2;
+  repeated Trait traits = 3;
+  double overall_resilience_index = 4;
+}
+
+message GenomeSearchRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message GenomeSearchResponse {
+  repeated GenomeResponse results = 1;
+}
+
+// Autonomous Constitutional AI Layer Messages
+message ConstitutionalRequest {
+  string country_code = 1;
+  string proposed_action = 2;
+  string context = 3;
+}
+
+message LegalConstraint {
+  string article = 1;
+  string text = 2;
+  string boundary = 3;
+  bool is_violated = 4;
+  string explanation = 5;
+}
+
+message ConstitutionalResponse {
+  string country_code = 1;
+  bool is_authorized = 2;
+  double infraction_risk_score = 3; // 0 to 100
+  repeated LegalConstraint evaluated_constraints = 4;
+  string alternate_recommendation = 5;
+}
+
+// Synthetic Civilization Sandbox Messages
+message SandboxRequest {
+  string country_code = 1;
+  int32 epochs = 2;
+  repeated string active_crises = 3; // e.g. ["currency_collapse", "drought", "cyber_attack"]
+}
+
+message PopulationMetrics {
+  double total_population = 1;
+  double panic_level = 2;       // 0 to 1.0
+  double displacement_rate = 3; // 0 to 1.0
+}
+
+message EconomicMetrics {
+  double gdp_growth_rate = 1;
+  double inflation = 2;
+  double supply_chain_integrity = 3; // 0 to 1.0
+}
+
+message InstabilityMetrics {
+  double civil_unrest = 4;  // 0 to 1.0
+  double systemic_collapse_probability = 5; // 0 to 1.0
+}
+
+message SandboxTick {
+  int32 epoch = 1;
+  PopulationMetrics population = 2;
+  EconomicMetrics economy = 3;
+  InstabilityMetrics instability = 4;
+  string status_message = 5;
+}
+
+// Emergency Contracting Autopilot Messages
+message ProcurementRequest {
+  string item_needed = 1;
+  int32 quantity_required = 2;
+  string urgent_reason = 3;
+}
+
+message Vendor {
+  string id = 1;
+  string name = 2;
+  double match_score = 3;
+  double price_unit = 4;
+  int32 delivery_lead_time_days = 5;
+  bool constitutional_clearance = 6;
+}
+
+message ProcurementResponse {
+  string item_needed = 1;
+  bool success = 2;
+  repeated Vendor matched_vendors = 3;
+  string selected_vendor_id = 4;
+  string purchase_order_draft_markdown = 5;
+  string legal_compliance_packet = 6;
+}
+
+// Self-Improving Agent Loop Messages
+message PromptOptimizeRequest {
+  string agent_id = 1;
+  string task_description = 2;
+  string system_prompt = 3;
+}
+
+message PromptOptimizeResponse {
+  string agent_id = 1;
+  string optimized_prompt = 2;
+  double performance_gain = 3;
+  string evaluation_report = 4;
+}
