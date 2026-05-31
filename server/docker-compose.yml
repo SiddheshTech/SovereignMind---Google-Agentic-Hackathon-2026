@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: sovereignmind-postgres
+    environment:
+      POSTGRES_DB: sovereignmind
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sovereignmind"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis Cache & PubSub Broker
+  redis:
+    image: redis:7-alpine
+    container_name: sovereignmind-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3. Arize Phoenix Telemetry Tracing & Evaluation Web UI
+  phoenix:
+    image: arize-phoenix:latest
+    container_name: sovereignmind-phoenix
+    ports:
+      - "6006:6006" # Telemetry Collector Port & UI
+    restart: unless-stopped
+    environment:
+      - PHOENIX_PORT=6006
+      - PHOENIX_HOST=0.0.0.0
+
+volumes:
+  postgres_data:
+  redis_data:
