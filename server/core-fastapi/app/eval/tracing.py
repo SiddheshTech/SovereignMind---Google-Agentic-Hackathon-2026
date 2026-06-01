@@ -32,21 +32,20 @@ def setup_phoenix_tracing():
     GoogleGenAIInstrumentor().instrument()
     print("✅ OpenInference Google GenAI Instrumentor successfully registered.")
 
-<<<<<<< HEAD
-    from openinference.instrumentation.openai import OpenAIInstrumentor
-    OpenAIInstrumentor().instrument()
-    print("✅ OpenInference OpenAI Instrumentor successfully registered.")
-    
-=======
-    # 2. Setup OpenInference Auto-instrumentation for Google GenAI
+    try:
+      from openinference.instrumentation.openai import OpenAIInstrumentor
+      OpenAIInstrumentor().instrument()
+      print("✅ OpenInference OpenAI Instrumentor successfully registered.")
+    except Exception as ie:
+      print("ℹ️ [Telemetry Engine] Utilizing standard OpenTelemetry telemetry spans for OpenAI.")
+
+    # Setup OpenInference Auto-instrumentation for Google GenAI
     try:
       from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
       GoogleGenAIInstrumentor().instrument()
       print("✅ OpenInference Google GenAI Instrumentor successfully registered.")
     except Exception as ie:
-      print("ℹ️ [Telemetry Engine] Utilizing standard OpenTelemetry telemetry spans.")
-
->>>>>>> origin/Smith13
+      print("ℹ️ [Telemetry Engine] Utilizing standard OpenTelemetry telemetry spans for Google GenAI.")
   except Exception as e:
     print("ℹ️ [Telemetry Engine] Phoenix Tracing modules not fully available locally. Recording logs locally.")
 
