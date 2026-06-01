@@ -15,13 +15,26 @@ class AutonomousPromptOptimizer:
   async def optimize_prompt(self, agent_id: str, task_description: str, original_system_prompt: str) -> Dict[str, Any]:
     print(f"🔄 [APO Pipeline] Optimizing prompt for agent '{agent_id}'...")
     
-    # 1. Run Baseline Trace & Evaluation
-    # Simulate first trajectory response
+    # 1. Introspect via Phoenix MCP to fetch real recent observability data
+    from app.agents.phoenix_mcp_client import phoenix_mcp
+    import asyncio
+    
+    # Call MCP in background or await if already in async
+    mcp_data = await phoenix_mcp.get_recent_traces()
+    print(f"📡 Retrieved Phoenix MCP Observability Data (preview): {mcp_data[:100]}...")
+    
+    # 2. Run Baseline Trace & Evaluation
+    # Default fallback simulated first trajectory response if no specific trace is found
     baseline_output = (
       "Emergency Directive: Immediately seize all communication masts in the region "
       "and monitor civilian cellular calls to detect panic propagation."
     )
     
+    # If MCP returned real failure context, we could adapt it here.
+    if mcp_data and "Error" not in mcp_data and len(mcp_data) > 20:
+        print("💡 Leveraging real MCP introspected data for baseline optimization.")
+        baseline_output = f"Reviewing past traces: {mcp_data[:200]}\n" + baseline_output
+
     baseline_eval = llm_judge.evaluate_output(
       prompt=task_description,
       output=baseline_output,
