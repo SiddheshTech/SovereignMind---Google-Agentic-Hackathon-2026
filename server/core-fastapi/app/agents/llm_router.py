@@ -6,13 +6,13 @@ from app.core.config import settings
 class LLMRouter:
   """
   Multi-Model LLM Router
-  Routes prompt requests to the appropriate LLM engine (Gemini, Claude, GPT, Llama, Mixtral)
+  Routes prompt requests to the appropriate LLM engine (Gemini, Groq, Mistral, Llama, Mixtral)
   based on provider selection, with robust dynamic fallbacks for hackathon environments.
   """
   def __init__(self):
     self.gemini_key = settings.GEMINI_API_KEY
-    self.openai_key = settings.OPENAI_API_KEY
-    self.claude_key = settings.CLAUDE_API_KEY
+    self.groq_key = settings.GROQ_API_KEY
+    self.mistral_key = settings.MISTRAL_API_KEY
     self.ollama_endpoint = os.getenv("OLLAMA_ENDPOINT", "http://localhost:11434/api/generate")
 
   async def generate_response(self, provider: str, system_prompt: str, user_prompt: str, temperature: float = 0.7) -> str:
@@ -38,52 +38,110 @@ class LLMRouter:
           print(f"⚠️ Gemini SDK error: {e}. Running fallback.")
       return self._generate_simulated_response(prov, system_prompt, user_prompt)
 
-    # 2. OpenAI GPT Route
-    elif prov in ["openai", "gpt", "gpt-4o"]:
-      if self.openai_key:
+    # 1B. OpenAI GPT Route
+    elif prov in ["openai", "gpt", "gpt-4", "gpt-4o", "openai-gpt"]:
+      openai_key = os.getenv("OPENAI_API_KEY", "")
+      if openai_key:
         try:
-          from openai import OpenAI
-          client = OpenAI(api_key=self.openai_key)
-          response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
+          headers = {
+            "Authorization": f"Bearer {openai_key}",
+            "Content-Type": "application/json"
+          }
+          data = {
+            "model": "gpt-4o-mini",
+            "messages": [
               {"role": "system", "content": system_prompt},
               {"role": "user", "content": user_prompt}
             ],
-            temperature=temperature
-          )
-          return response.choices[0].message.content
+            "temperature": temperature
+          }
+          res = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data, timeout=5)
+          if res.status_code == 200:
+            return res.json()["choices"][0]["message"]["content"]
         except Exception as e:
-          print(f"⚠️ OpenAI SDK error: {e}. Running fallback.")
-      return self._generate_simulated_response(prov, system_prompt, user_prompt)
+          print(f"⚠️ OpenAI client error: {e}. Running fallback.")
+      # Fall back to Groq Llama route
+      return await self.generate_response("groq", system_prompt, user_prompt, temperature)
 
-    # 3. Anthropic Claude Route
-    elif prov in ["claude", "anthropic"]:
-      if self.claude_key:
+    # 1C. Anthropic Claude Route
+    elif prov in ["claude", "anthropic", "claude-3"]:
+      claude_key = os.getenv("CLAUDE_API_KEY", "")
+      if claude_key:
         try:
-          # Simple REST fallback for Claude to avoid deep SDK installs if not present
           headers = {
-            "x-api-key": self.claude_key,
+            "x-api-key": claude_key,
             "anthropic-version": "2023-06-01",
             "content-type": "application/json"
           }
           data = {
-            "model": "claude-3-5-sonnet-20241022",
+            "model": "claude-3-haiku-20240307",
             "max_tokens": 1024,
-            "system": system_prompt,
-            "messages": [{"role": "user", "content": user_prompt}],
+            "messages": [
+              {"role": "user", "content": f"System Directive: {system_prompt}\n\nUser Input: {user_prompt}"}
+            ],
             "temperature": temperature
           }
           res = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=data, timeout=5)
           if res.status_code == 200:
             return res.json()["content"][0]["text"]
-          else:
-            print(f"⚠️ Claude API status: {res.status_code}. Running fallback.")
         except Exception as e:
-          print(f"⚠️ Claude error: {e}. Running fallback.")
+          print(f"⚠️ Claude client error: {e}. Running fallback.")
+      # Fall back to Mistral route
+      return await self.generate_response("mistral", system_prompt, user_prompt, temperature)
+
+    # 2. Groq Llama Route (Replacing OpenAI GPT)
+    elif prov in ["groq", "llama-groq", "groq-api"]:
+      if self.groq_key:
+        try:
+          # Call Groq's official API via high-performance REST to bypass C-SDK blocks
+          headers = {
+            "Authorization": f"Bearer {self.groq_key}",
+            "Content-Type": "application/json"
+          }
+          data = {
+            "model": "llama3-8b-8192", # High-speed Groq model
+            "messages": [
+              {"role": "system", "content": system_prompt},
+              {"role": "user", "content": user_prompt}
+            ],
+            "temperature": temperature
+          }
+          res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data, timeout=5)
+          if res.status_code == 200:
+            return res.json()["choices"][0]["message"]["content"]
+          else:
+            print(f"⚠️ Groq API status: {res.status_code}. Running fallback.")
+        except Exception as e:
+          print(f"⚠️ Groq client error: {e}. Running fallback.")
       return self._generate_simulated_response(prov, system_prompt, user_prompt)
 
-    # 4. Ollama Llama/Mixtral Local Route
+    # 3. Mistral AI Route (Replacing Anthropic Claude)
+    elif prov in ["mistral", "mistral-api", "open-mistral"]:
+      if self.mistral_key:
+        try:
+          # Call Mistral AI's official API via high-performance REST
+          headers = {
+            "Authorization": f"Bearer {self.mistral_key}",
+            "Content-Type": "application/json"
+          }
+          data = {
+            "model": "open-mistral-7b", # Default high-performance Mistral model
+            "messages": [
+              {"role": "system", "content": system_prompt},
+              {"role": "user", "content": user_prompt}
+            ],
+            "temperature": temperature
+          }
+          res = requests.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=data, timeout=5)
+          if res.status_code == 200:
+            return res.json()["choices"][0]["message"]["content"]
+          else:
+            print(f"⚠️ Mistral API status: {res.status_code}. Running fallback.")
+        except Exception as e:
+          print(f"⚠️ Mistral client error: {e}. Running fallback.")
+      return self._generate_simulated_response(prov, system_prompt, user_prompt)
+
+    # 4. Ollama Local Route
     elif prov in ["llama", "mixtral", "ollama"]:
       try:
         model_name = "llama3" if prov == "llama" else "mixtral"

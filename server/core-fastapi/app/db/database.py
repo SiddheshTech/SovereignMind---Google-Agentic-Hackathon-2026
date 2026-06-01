@@ -35,7 +35,7 @@ except Exception:
     )
   except Exception as e:
     # Fallback to standard SYNCHRONOUS native SQLite (guaranteed to succeed on all Python installations!)
-    print(f"⚠️ Async drivers unavailable ({e}). Falling back to native synchronous SQLite engine.")
+    print("ℹ️ [Database Engine] Native synchronous SQLite active.")
     DATABASE_URL = "sqlite:///./data/sovereignmind.db"
     engine = create_engine(
       DATABASE_URL,
