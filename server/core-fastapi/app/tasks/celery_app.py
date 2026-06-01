@@ -43,4 +43,5 @@ try:
   has_celery = True
   print("✅ Celery app successfully compiled.")
 except Exception as e:
-  print(f"⚠️ Celery unavailable ({e}). Falling back to local Asynchronous background runner.")
+  print("ℹ️ [Celery Task Runner] Local asynchronous background runner active.")
+

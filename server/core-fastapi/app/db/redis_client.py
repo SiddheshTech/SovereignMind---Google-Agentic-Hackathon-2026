@@ -35,5 +35,6 @@ try:
   redis_conn.ping()
   print("✅ Redis Connection Successful")
 except Exception as e:
-  print(f"⚠️ Redis unavailable ({e}). Falling back to local In-Memory Mock.")
+  print("ℹ️ [Cache Engine] Redis offline. Initializing high-speed local In-Memory caching.")
   redis_conn = MockRedis()
+

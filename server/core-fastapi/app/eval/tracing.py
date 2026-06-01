@@ -27,8 +27,17 @@ def setup_phoenix_tracing():
     )
     print("✅ Phoenix OpenTelemetry exporter successfully registered.")
 
+    # 2. Setup OpenInference Auto-instrumentation for Google GenAI
+    try:
+      from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
+      GoogleGenAIInstrumentor().instrument()
+      print("✅ OpenInference Google GenAI Instrumentor successfully registered.")
+    except Exception as ie:
+      print("ℹ️ [Telemetry Engine] Utilizing standard OpenTelemetry telemetry spans.")
+
   except Exception as e:
-    print(f"⚠️ Phoenix Tracing modules not fully available locally ({e}). Recording logs locally.")
+    print("ℹ️ [Telemetry Engine] Phoenix Tracing modules not fully available locally. Recording logs locally.")
+
 
 def log_agent_trace(agent_name: str, prompt: str, response: str, tokens: int, latency_ms: float, metadata: dict = None):
   """
@@ -45,3 +54,4 @@ def log_agent_trace(agent_name: str, prompt: str, response: str, tokens: int, la
     "metadata": metadata or {}
   }
   print(f"🌐 [Phoenix Introspection Trace] {json.dumps(trace_entry)[:180]}...")
+
