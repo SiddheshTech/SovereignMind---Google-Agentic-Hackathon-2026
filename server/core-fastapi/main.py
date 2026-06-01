@@ -12,8 +12,10 @@ from app.core import security
 from app.db.database import init_db, get_db
 from app.db.redis_client import redis_conn
 from app.db.firebase_client import firestore_client
+from app.db.mongodb_client import mongo_client
 # Import models to ensure they are registered in SQLModel metadata for auto-creation
 import app.db.models 
+ 
 
 # Service, Agent, and Kafka imports
 from app.services.genome_engine import genome_engine
@@ -22,7 +24,10 @@ from app.services.sandbox_engine import sandbox_engine
 from app.services.procurement_autopilot import procurement_autopilot
 from app.agents.langgraph_workflow import run_langgraph_sandbox_flow
 from app.agents.crew_workflow import crew_workflow_manager
+from app.agents.autogen_workflow import autogen_workflow
 from app.db.kafka_client import kafka_client
+from app.services.training_engine import model_training_engine
+
 
 # Celery task imports
 from app.tasks.tasks import async_constitutional_audit, async_emergency_procurement, async_sandbox_run
@@ -80,8 +85,10 @@ async def health_check():
     "database": "CONNECTED",
     "redis": "CONNECTED" if not hasattr(redis_conn, "store") else "MOCK_CONNECTED",
     "firebase": "CONNECTED" if not hasattr(firestore_client, "db") else "MOCK_CONNECTED",
+    "mongodb": "CONNECTED" if not hasattr(mongo_client, "db") else "MOCK_CONNECTED",
     "kafka": "CONNECTED" if kafka_client.has_kafka else "MOCK_CONNECTED"
   }
+
 
 # --- OAuth 2.0 Auth Endpoints ---
 
@@ -172,6 +179,18 @@ async def run_agent_sandbox_pipeline(payload: Dict[str, Any]):
   res = await run_langgraph_sandbox_flow(country_code, proposed_action, active_crises)
   return res
 
+@app.post("/api/v1/autogen-debate")
+async def run_autogen_agent_debate(payload: Dict[str, Any]):
+  country_code = payload.get("country_code", "US")
+  policy_proposal = payload.get("policy_proposal", "")
+  
+  if not policy_proposal:
+    raise HTTPException(status_code=400, detail="policy_proposal is required")
+    
+  res = await autogen_workflow.run_constitutional_debate(country_code, policy_proposal)
+  return res
+
+
 @app.post("/api/v1/emergency-contract")
 async def run_emergency_contract_autopilot(payload: Dict[str, Any]):
   item_needed = payload.get("item_needed", "")
@@ -233,6 +252,13 @@ async def queue_celery_simulation(payload: Dict[str, Any]):
   # Dispatch to Celery background task queue!
   async_sandbox_run.delay(country, epochs, crises)
   return {"status": "SANDBOX_SIMULATION_QUEUED_IN_CELERY_DAEMON", "country": country}
+
+@app.post("/api/v1/train-models")
+async def run_model_training_pipeline(payload: Dict[str, Any]):
+  epochs = payload.get("epochs", 50)
+  lr = payload.get("learning_rate", 0.01)
+  res = await model_training_engine.train_stability_model(epochs, lr)
+  return res
 
 # --- Model Context Protocol (MCP) JSON-RPC Endpoints ---
 

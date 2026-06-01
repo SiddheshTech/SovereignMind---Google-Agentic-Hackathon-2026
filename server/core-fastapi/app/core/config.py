@@ -28,8 +28,8 @@ class Settings(BaseSettings):
 
   # LLM API Keys
   GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
-  OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
-  CLAUDE_API_KEY: Optional[str] = os.getenv("CLAUDE_API_KEY")
+  GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY")
+  MISTRAL_API_KEY: Optional[str] = os.getenv("MISTRAL_API_KEY")
 
   # Firebase configuration
   FIREBASE_CREDENTIALS_PATH: Optional[str] = os.getenv("FIREBASE_CREDENTIALS_PATH")

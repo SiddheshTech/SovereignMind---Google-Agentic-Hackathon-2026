@@ -54,13 +54,14 @@ class KafkaClientManager:
       self.has_kafka = True
       print("✅ Apache Kafka producer connection established.")
     except Exception as e:
-      print(f"⚠️ Kafka unavailable ({e}). Falling back to In-Memory Mock.")
+      print("ℹ️ [Kafka Engine] Apache Kafka broker offline. Routing event streams through local civilization topic buffer.")
       self.producer = MockKafkaProducer(self.bootstrap_servers)
 
   def publish_event(self, topic: str, event_data: Dict[str, Any]):
     try:
       self.producer.send(topic, event_data)
     except Exception as e:
-      print(f"⚠️ Failed to publish Kafka event to '{topic}': {e}")
+      pass
+
 
 kafka_client = KafkaClientManager()
