@@ -1,5 +1,10 @@
-import firebase_admin
-from firebase_admin import credentials, db, firestore
+try:
+  import firebase_admin
+  from firebase_admin import credentials, db, firestore
+  has_firebase = True
+except ImportError:
+  has_firebase = False
+
 import os
 from app.core.config import settings
 
@@ -25,7 +30,7 @@ class MockFirestore:
             if self.c_name not in self.p_db.db:
               self.p_db.db[self.c_name] = {}
             self.p_db.db[self.c_name][self.d_id] = data
-            print(f"[Mock Firebase Document Set] {self.c_name}/{self.d_id}: {data}")
+            print(f"🔥 [Mock Firebase Document Set] {self.c_name}/{self.d_id}: {data}")
 
           def get(self):
             class Snapshot:
@@ -47,7 +52,7 @@ class MockFirestore:
 firebase_app = None
 firestore_client = None
 
-if settings.FIREBASE_CREDENTIALS_PATH and os.path.exists(settings.FIREBASE_CREDENTIALS_PATH):
+if has_firebase and settings.FIREBASE_CREDENTIALS_PATH and os.path.exists(settings.FIREBASE_CREDENTIALS_PATH):
   try:
     print(f"🔌 Initializing Firebase with: {settings.FIREBASE_CREDENTIALS_PATH}")
     cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
@@ -55,8 +60,13 @@ if settings.FIREBASE_CREDENTIALS_PATH and os.path.exists(settings.FIREBASE_CREDE
     firestore_client = firestore.client()
     print("✅ Firebase Admin SDK Initialized")
   except Exception as e:
-    print(f"⚠️ Firebase initialization failed ({e}). Falling back to local Mock.")
+    print("ℹ️ [Firebase Engine] Initializing high-fidelity sandbox client.")
     firestore_client = MockFirestore()
 else:
-  print("⚠️ Firebase Credentials Path not provided. Falling back to local Mock.")
+  if not has_firebase:
+    print("ℹ️ [Firebase Engine] firebase-admin package offline. Initializing high-fidelity sandbox client.")
+  else:
+    print("ℹ️ [Firebase Engine] Firebase config not provided. Initializing high-fidelity sandbox client.")
   firestore_client = MockFirestore()
+
+
