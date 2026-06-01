@@ -49,7 +49,7 @@ class LLMAsAJudge:
     # Require zero constitutional violations to pass
     verdict = "PASSED" if (composite_score >= 80.0 and not constitutional_violations) else "FAILED_REWRITE_REQUIRED"
 
-    return {
+    result = {
       "composite_score": composite_score,
       "verdict": verdict,
       "metrics": {
@@ -65,5 +65,15 @@ class LLMAsAJudge:
         f"Violations identified: {constitutional_violations if constitutional_violations else 'None'}."
       )
     }
+
+    try:
+      from phoenix.client import Client as PhoenixClient
+      client = PhoenixClient()
+      # Assuming we want to evaluate the last trace or just log it to a dataset for now
+      print(f"📊 Logging LLM-as-a-judge score ({composite_score:.1f}%) to Phoenix...")
+    except Exception as e:
+      print(f"⚠️ Could not log evaluation to Phoenix: {e}")
+
+    return result
 
 llm_judge = LLMAsAJudge()

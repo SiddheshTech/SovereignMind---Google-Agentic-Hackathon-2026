@@ -20,13 +20,22 @@ def setup_phoenix_tracing():
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
     from phoenix.otel import register
     
-    # Register Arize Phoenix telemetry exporter
+    # 2. Register Arize Phoenix telemetry exporter
     # This captures prompt templates, tokens, latencies, and cross-agent calls
     register(
       endpoint=f"{settings.PHOENIX_COLLECTOR_ENDPOINT}/v1/traces"
     )
     print("✅ Phoenix OpenTelemetry exporter successfully registered.")
+    
+    # 3. Instrument the agent frameworks with OpenInference
+    from openinference.instrumentation.google_genai import GoogleGenAIInstrumentor
+    GoogleGenAIInstrumentor().instrument()
+    print("✅ OpenInference Google GenAI Instrumentor successfully registered.")
 
+    from openinference.instrumentation.openai import OpenAIInstrumentor
+    OpenAIInstrumentor().instrument()
+    print("✅ OpenInference OpenAI Instrumentor successfully registered.")
+    
   except Exception as e:
     print(f"⚠️ Phoenix Tracing modules not fully available locally ({e}). Recording logs locally.")
 

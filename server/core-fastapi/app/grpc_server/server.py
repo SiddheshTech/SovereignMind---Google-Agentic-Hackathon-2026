@@ -4,8 +4,9 @@ import asyncio
 import grpc
 from concurrent import futures
 
-# Ensure path includes FastAPI app root
+# Ensure path includes FastAPI app root and gRPC output directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Dynamically compile Proto files on server boot!
 def compile_protobufs():
