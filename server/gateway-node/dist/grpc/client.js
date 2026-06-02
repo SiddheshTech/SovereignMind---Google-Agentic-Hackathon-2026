@@ -43,7 +43,7 @@ exports.optimizePrompt = optimizePrompt;
 const grpc = __importStar(require("@grpc/grpc-js"));
 const protoLoader = __importStar(require("@grpc/proto-loader"));
 const path = __importStar(require("path"));
-const PROTO_PATH = path.join(__dirname, '../../../../grpc-proto/services.proto');
+const PROTO_PATH = path.join(__dirname, '../../../grpc-proto/services.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
     keepCase: true,
     longs: String,
