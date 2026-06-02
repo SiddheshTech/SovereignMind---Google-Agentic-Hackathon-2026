@@ -78,6 +78,9 @@ else:
     async def commit(self):
       self.sync_session.commit()
 
+    async def refresh(self, model):
+      self.sync_session.refresh(model)
+
     async def close(self):
       self.sync_session.close()
 
