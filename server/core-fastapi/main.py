@@ -3,8 +3,11 @@ import uvicorn
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, select
 from typing import Dict, Any, List
+
+from app.schemas import UserSignUpRequest, UserSignInRequest, UserResponse
+from app.db.models import UserModel
 
 # Core, Database, and SQLModel imports
 from app.core.config import settings
@@ -91,6 +94,55 @@ async def health_check():
 
 
 # --- OAuth 2.0 Auth Endpoints ---
+
+@app.post("/api/v1/auth/signup", response_model=UserResponse)
+async def signup(user_data: UserSignUpRequest, db=Depends(get_db)):
+  # Check if email exists
+  query = select(UserModel).where(UserModel.email == user_data.email)
+  result = await db.execute(query)
+  existing_user = result.scalars().first()
+  if existing_user:
+    raise HTTPException(status_code=400, detail="Email already registered")
+    
+  # Create new user
+  hashed_password = security.get_password_hash(user_data.password)
+  new_user = UserModel(
+    call_sign=user_data.call_sign,
+    email=user_data.email,
+    hashed_password=hashed_password
+  )
+  db.add(new_user)
+  await db.commit()
+  await db.refresh(new_user)
+  return new_user
+
+@app.post("/api/v1/auth/signin")
+async def signin(login_data: UserSignInRequest, db=Depends(get_db)):
+  query = select(UserModel).where(UserModel.email == login_data.email)
+  result = await db.execute(query)
+  user = result.scalars().first()
+  
+  if not user or not security.verify_password(login_data.password, user.hashed_password):
+    raise HTTPException(
+      status_code=status.HTTP_401_UNAUTHORIZED,
+      detail="Incorrect email or password",
+      headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+  # Optional: Log or process the cryptographic badge key if provided
+  if login_data.badge_key:
+    print(f"🔐 Badge Key provided for {user.email}: {login_data.badge_key}")
+    
+  access_token = security.create_access_token(subject=user.email)
+  return {
+    "access_token": access_token, 
+    "token_type": "bearer",
+    "user": {
+      "id": user.id,
+      "email": user.email,
+      "call_sign": user.call_sign
+    }
+  }
 
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):

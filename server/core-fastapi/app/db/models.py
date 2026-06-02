@@ -100,3 +100,13 @@ class PromptOptimizationModel(SQLModel, table=True):
   optimized_prompt: str
   performance_gain: float
   evaluation_report: str
+
+class UserModel(SQLModel, table=True):
+  __tablename__ = "users"
+  
+  id: Optional[int] = Field(default=None, primary_key=True)
+  call_sign: str
+  email: str = Field(index=True, unique=True)
+  hashed_password: str
+  badge_key: Optional[str] = None
+  is_active: bool = Field(default=True)
