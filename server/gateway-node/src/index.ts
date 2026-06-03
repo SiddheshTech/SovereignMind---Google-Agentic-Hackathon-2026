@@ -6,6 +6,7 @@ import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs } from './graphql/schema';
 import { resolvers } from './graphql/resolvers';
 import { initWebSocketServer } from './websockets/simulation_stream';
+import authRoutes from './routes/auth';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -35,6 +36,9 @@ async function startGateway() {
     '/graphql',
     expressMiddleware(apolloServer)
   );
+
+  // Mount Auth routes
+  app.use('/api/auth', authRoutes);
 
   app.get('/health', (req, res) => {
     res.json({ status: 'OK', service: 'SovereignMind Gateway Node' });
