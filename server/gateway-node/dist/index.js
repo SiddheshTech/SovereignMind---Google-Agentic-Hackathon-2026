@@ -11,6 +11,7 @@ const express4_1 = require("@apollo/server/express4");
 const schema_1 = require("./graphql/schema");
 const resolvers_1 = require("./graphql/resolvers");
 const simulation_stream_1 = require("./websockets/simulation_stream");
+const auth_1 = __importDefault(require("./routes/auth"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const PORT = process.env.PORT || 4000;
@@ -29,6 +30,8 @@ async function startGateway() {
     app.use(express_1.default.json());
     // Mount Apollo middleware
     app.use('/graphql', (0, express4_1.expressMiddleware)(apolloServer));
+    // Mount Auth routes
+    app.use('/api/auth', auth_1.default);
     app.get('/health', (req, res) => {
         res.json({ status: 'OK', service: 'SovereignMind Gateway Node' });
     });
