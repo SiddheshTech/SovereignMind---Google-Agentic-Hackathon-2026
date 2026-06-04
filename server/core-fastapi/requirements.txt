@@ -34,3 +34,10 @@ mcp
 openinference-instrumentation-openai
 firebase-admin
 langgraph
+pandas>=2.0.0
+openpyxl>=3.1.0
+xgboost>=2.0.0
+scikit-learn>=1.3.0
+websockets>=11.0.3
+crewai>=0.28.8
+langchain-google-genai>=1.0.3
