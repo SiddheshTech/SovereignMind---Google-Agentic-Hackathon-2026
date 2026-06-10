@@ -83,3 +83,12 @@ export function optimizePrompt(agentId: string, taskDescription: string, systemP
     });
   });
 }
+
+export function calculateSimilarity(countryCode: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.CalculateSimilarity({ country_code: countryCode }, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}

@@ -201,6 +201,18 @@ class SovereignMindServicer:
       evaluation_report=res["evaluation_report"]
     )
 
+  async def CalculateSimilarity(self, request, context):
+    print(f"📡 [gRPC] CalculateSimilarity called for: {request.country_code}")
+    
+    # Mocking comparative intelligence matching
+    results = [
+      services_pb2.SimilarityResult(nation_name="Japan", match_percentage=81.0),
+      services_pb2.SimilarityResult(nation_name="South Korea", match_percentage=76.0),
+      services_pb2.SimilarityResult(nation_name="Singapore", match_percentage=72.0)
+    ]
+    
+    return services_pb2.SimilarityResponse(results=results)
+
 async def serve_grpc():
   server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
   

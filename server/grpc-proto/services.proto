@@ -6,6 +6,7 @@ service SovereignMindService {
   // Sovereignty Genome Engine
   rpc GetSovereigntyGenome (GenomeRequest) returns (GenomeResponse);
   rpc SearchGenomeTraits (GenomeSearchRequest) returns (GenomeSearchResponse);
+  rpc CalculateSimilarity (SimilarityRequest) returns (SimilarityResponse);
 
   // Autonomous Constitutional AI Layer
   rpc RunConstitutionalEvaluation (ConstitutionalRequest) returns (ConstitutionalResponse);
@@ -141,4 +142,17 @@ message PromptOptimizeResponse {
   string optimized_prompt = 2;
   double performance_gain = 3;
   string evaluation_report = 4;
+}
+
+message SimilarityRequest {
+  string country_code = 1;
+}
+
+message SimilarityResult {
+  string nation_name = 1;
+  double match_percentage = 2;
+}
+
+message SimilarityResponse {
+  repeated SimilarityResult results = 1;
 }

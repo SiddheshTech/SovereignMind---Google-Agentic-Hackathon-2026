@@ -3,9 +3,14 @@ import {
   searchGenomeTraits,
   runConstitutionalEvaluation,
   draftEmergencyContract,
-  optimizePrompt
+  optimizePrompt,
+  calculateSimilarity
 } from '../grpc/client';
 import { triggerSandboxStream } from '../websockets/simulation_stream';
+import { CivilizationGenome } from '../models/CivilizationGenome';
+import connectDB from '../config/db';
+
+connectDB();
 
 export const resolvers = {
   Query: {
@@ -23,6 +28,24 @@ export const resolvers = {
         return response.results || [];
       } catch (err) {
         console.error('GraphQL Error searchGenomes:', err);
+        throw err;
+      }
+    },
+    getDetailedGenome: async (_: any, { countryCode }: { countryCode: string }) => {
+      try {
+        const genome = await CivilizationGenome.findOne({ countryCode: countryCode.toUpperCase() });
+        return genome;
+      } catch (err) {
+        console.error('GraphQL Error getDetailedGenome:', err);
+        throw err;
+      }
+    },
+    getSimilarity: async (_: any, { countryCode }: { countryCode: string }) => {
+      try {
+        const response = await calculateSimilarity(countryCode);
+        return response.results || [];
+      } catch (err) {
+        console.error('GraphQL Error getSimilarity:', err);
         throw err;
       }
     },
