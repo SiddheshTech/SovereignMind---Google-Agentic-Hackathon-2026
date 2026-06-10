@@ -64,6 +64,26 @@ class SovereignMindServiceStub:
                 request_serializer=services__pb2.PromptOptimizeRequest.SerializeToString,
                 response_deserializer=services__pb2.PromptOptimizeResponse.FromString,
                 _registered_method=True)
+        self.EvaluateAuthorityProposal = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/EvaluateAuthorityProposal',
+                request_serializer=services__pb2.AuthorityProposalRequest.SerializeToString,
+                response_deserializer=services__pb2.AuthorityProposalResponse.FromString,
+                _registered_method=True)
+        self.RunCrisisScenario = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/RunCrisisScenario',
+                request_serializer=services__pb2.CrisisScenarioRequest.SerializeToString,
+                response_deserializer=services__pb2.CrisisScenarioResponse.FromString,
+                _registered_method=True)
+        self.RunDetailedSimulation = channel.unary_stream(
+                '/sovereignmind.SovereignMindService/RunDetailedSimulation',
+                request_serializer=services__pb2.DetailedSimRequest.SerializeToString,
+                response_deserializer=services__pb2.DetailedSimTick.FromString,
+                _registered_method=True)
+        self.GenerateRecoveryPaths = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateRecoveryPaths',
+                request_serializer=services__pb2.RecoveryPathRequest.SerializeToString,
+                response_deserializer=services__pb2.RecoveryPathResponse.FromString,
+                _registered_method=True)
 
 
 class SovereignMindServiceServicer:
@@ -110,6 +130,34 @@ class SovereignMindServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def EvaluateAuthorityProposal(self, request, context):
+        """Authority Maps Policy Evaluation
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RunCrisisScenario(self, request, context):
+        """Sandbox: Crisis Scenario Analysis (AI-powered)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RunDetailedSimulation(self, request, context):
+        """Sandbox: Detailed Streaming Simulation Ticks
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GenerateRecoveryPaths(self, request, context):
+        """Sandbox: Recovery Path Generation (AI-powered)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SovereignMindServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -142,6 +190,26 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
                     servicer.OptimizePrompt,
                     request_deserializer=services__pb2.PromptOptimizeRequest.FromString,
                     response_serializer=services__pb2.PromptOptimizeResponse.SerializeToString,
+            ),
+            'EvaluateAuthorityProposal': grpc.unary_unary_rpc_method_handler(
+                    servicer.EvaluateAuthorityProposal,
+                    request_deserializer=services__pb2.AuthorityProposalRequest.FromString,
+                    response_serializer=services__pb2.AuthorityProposalResponse.SerializeToString,
+            ),
+            'RunCrisisScenario': grpc.unary_unary_rpc_method_handler(
+                    servicer.RunCrisisScenario,
+                    request_deserializer=services__pb2.CrisisScenarioRequest.FromString,
+                    response_serializer=services__pb2.CrisisScenarioResponse.SerializeToString,
+            ),
+            'RunDetailedSimulation': grpc.unary_stream_rpc_method_handler(
+                    servicer.RunDetailedSimulation,
+                    request_deserializer=services__pb2.DetailedSimRequest.FromString,
+                    response_serializer=services__pb2.DetailedSimTick.SerializeToString,
+            ),
+            'GenerateRecoveryPaths': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateRecoveryPaths,
+                    request_deserializer=services__pb2.RecoveryPathRequest.FromString,
+                    response_serializer=services__pb2.RecoveryPathResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -306,6 +374,114 @@ class SovereignMindService:
             '/sovereignmind.SovereignMindService/OptimizePrompt',
             services__pb2.PromptOptimizeRequest.SerializeToString,
             services__pb2.PromptOptimizeResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def EvaluateAuthorityProposal(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/EvaluateAuthorityProposal',
+            services__pb2.AuthorityProposalRequest.SerializeToString,
+            services__pb2.AuthorityProposalResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RunCrisisScenario(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/RunCrisisScenario',
+            services__pb2.CrisisScenarioRequest.SerializeToString,
+            services__pb2.CrisisScenarioResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RunDetailedSimulation(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/RunDetailedSimulation',
+            services__pb2.DetailedSimRequest.SerializeToString,
+            services__pb2.DetailedSimTick.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateRecoveryPaths(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GenerateRecoveryPaths',
+            services__pb2.RecoveryPathRequest.SerializeToString,
+            services__pb2.RecoveryPathResponse.FromString,
             options,
             channel_credentials,
             insecure,

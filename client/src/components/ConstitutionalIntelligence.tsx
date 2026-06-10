@@ -46,6 +46,8 @@ export function ConstitutionalIntelligence({ initialSubTab = 'maps' }: Constitut
     explanation: "Dynamic state-wide network shuts are constitutionally disproportionate under standard emergency criteria. Localized, defense-screen filter loops must cover compromised nodes instead."
   });
 
+  const [allProposals, setAllProposals] = useState<any[]>([]);
+
   // Emergency Powers state
   const [selectedEmergency, setSelectedEmergency] = useState<'pandemic' | 'war' | 'natural disaster' | 'economic collapse'>('pandemic');
   const [isEmergencyLoading, setIsEmergencyLoading] = useState(false);
@@ -100,24 +102,124 @@ export function ConstitutionalIntelligence({ initialSubTab = 'maps' }: Constitut
     setActiveSubTab(initialSubTab);
   }, [initialSubTab]);
 
-  // Call dynamic validate AI endpoint
+  // Load existing evaluated proposals from MongoDB on boot
+  useEffect(() => {
+    const fetchExisting = async () => {
+      try {
+        const res = await fetch('http://localhost:4000/graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `
+              query {
+                getAuthorityProposals {
+                  id
+                  title
+                  safetyScore
+                  riskScore
+                  civilLibertyImpact
+                  recommendation
+                  zone
+                  constitutionalPoints
+                  violations
+                  explanation
+                  createdAt
+                }
+              }
+            `
+          })
+        });
+        const json = await res.json();
+        if (json.data && json.data.getAuthorityProposals) {
+          const proposals = json.data.getAuthorityProposals;
+          setAllProposals(proposals);
+          if (proposals.length > 0) {
+            setValResult(proposals[0]);
+            setProposalInput(proposals[0].title);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch authority proposals:', err);
+      }
+    };
+
+    fetchExisting();
+  }, []);
+
+  // Connect to live WebSocket stream to sync new validation runs in real time
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:4000/ws/authority-maps');
+    
+    ws.onopen = () => {
+      console.log('Connected to Authority Maps WebSocket');
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'AUTHORITY_PROPOSAL_ADDED' && message.data) {
+          setAllProposals(prev => {
+            if (prev.some(p => p.id === message.data.id)) return prev;
+            return [message.data, ...prev];
+          });
+          setValResult(message.data);
+        }
+      } catch (err) {
+        console.error('Error parsing WebSocket message:', err);
+      }
+    };
+    
+    ws.onclose = () => {
+      console.log('Disconnected from Authority Maps WebSocket');
+    };
+    
+    return () => ws.close();
+  }, []);
+
+  // Call dynamic validate AI endpoint using GraphQL Mutation
   const handleValidateProposal = async (customProposal?: string) => {
     const queryStr = customProposal || proposalInput;
+    if (!queryStr.trim()) return;
     setIsValLoading(true);
     try {
-      const res = await fetch('/api/civilization/constitutional-validate', {
+      const res = await fetch('http://localhost:4000/graphql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proposal: queryStr })
+        body: JSON.stringify({
+          query: `
+            mutation Validate($title: String!) {
+              validateAuthorityProposal(title: $title) {
+                id
+                title
+                safetyScore
+                riskScore
+                civilLibertyImpact
+                recommendation
+                zone
+                constitutionalPoints
+                violations
+                explanation
+                createdAt
+              }
+            }
+          `,
+          variables: { title: queryStr }
+        })
       });
-      const data = await res.json();
-      if (data.result) {
-        setValResult(data.result);
+      const json = await res.json();
+      if (json.data && json.data.validateAuthorityProposal) {
+        const result = json.data.validateAuthorityProposal;
+        setValResult(result);
+        setProposalInput(result.title);
+        setAllProposals(prev => {
+          if (prev.some(p => p.id === result.id)) return prev;
+          return [result, ...prev];
+        });
         // Sync treaty analysis if user validates a proposal
         handleAnalyzeTreaties(queryStr);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Failed to validate authority proposal:', e);
     } finally {
       setIsValLoading(false);
     }
@@ -326,69 +428,80 @@ export function ConstitutionalIntelligence({ initialSubTab = 'maps' }: Constitut
                     {/* Coordinate Indicator Bars */}
                     <div className="absolute bottom-1/2 left-0 right-0 border-t border-white/5 pointer-events-none" />
                     <div className="absolute left-1/2 top-0 bottom-0 border-l border-white/5 pointer-events-none" />
-
-                    {/* Dynamic Policy Coordinate Point Plotted on Map */}
-                    <AnimatePresence mode="wait">
-                      <motion.div 
-                        key={valResult.safetyScore}
-                        className="absolute z-10"
-                        // Calculate plot positions based on scores
-                        // safetyScore maps to Y axis (higher safety = top)
-                        // riskScore or libertyImpact maps to X axis (higher risk = right)
-                        style={{
-                          left: `${Math.max(5, Math.min(95, valResult.riskScore))}%`,
-                          bottom: `${Math.max(5, Math.min(95, valResult.safetyScore))}%`,
-                          transform: 'translate(-50%, 50%)'
-                        }}
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 100 }}
-                      >
-                        {/* Glowing focal cursor */}
-                        <div className="relative flex items-center justify-center">
-                          {/* Outer pulse */}
-                          <div 
-                            className="absolute rounded-full w-12 h-12 opacity-30 animate-ping"
-                            style={{ 
-                              backgroundColor: 
-                                valResult.zone === 'Green' ? PALETTE.green : 
-                                valResult.zone === 'Yellow' ? PALETTE.yellow : PALETTE.red 
-                            }} 
-                          />
-                          {/* Inner glowing core */}
-                          <div 
-                            className="absolute rounded-full w-4 h-4 shadow-[0_0_20px_rgba(255,255,255,0.7)] border-2 border-white"
-                            style={{ 
-                              backgroundColor: 
-                                valResult.zone === 'Green' ? PALETTE.green : 
-                                valResult.zone === 'Yellow' ? PALETTE.yellow : PALETTE.red 
-                            }} 
-                          />
-                          {/* Flag layout tooltip */}
-                          <div className="absolute top-6 flex flex-col items-center bg-slate-900 border border-white/10 p-2.5 rounded-xl w-48 text-left shadow-2xl backdrop-blur-md">
-                            <span className="text-[10px] font-bold text-white truncate max-w-full">
-                              {proposalInput || "Custom Policy Proposal"}
-                            </span>
-                            <div className="flex justify-between items-center w-full mt-1">
-                              <span className="text-[9px] text-gray-400 font-mono">Score: {valResult.safetyScore}%</span>
-                              <span 
-                                className="text-[8px] px-1.5 py-0.5 rounded uppercase font-mono font-bold"
-                                style={{
-                                  backgroundColor: 
-                                    valResult.zone === 'Green' ? `${PALETTE.green}15` : 
-                                    valResult.zone === 'Yellow' ? `${PALETTE.yellow}15` : `${PALETTE.red}15`,
-                                  color: 
-                                    valResult.zone === 'Green' ? PALETTE.green : 
-                                    valResult.zone === 'Yellow' ? PALETTE.yellow : PALETTE.red 
+                    {/* Dynamic Policy Coordinate Points Plotted on Map */}
+                    <AnimatePresence>
+                      {(allProposals.length > 0 ? allProposals : [valResult]).map((p: any, index: number) => {
+                        const isActive = p.title === valResult.title;
+                        const pointColor = p.zone === 'Green' ? PALETTE.green : p.zone === 'Yellow' ? PALETTE.yellow : PALETTE.red;
+                        return (
+                          <motion.div 
+                            key={p.id || p.title || index}
+                            className="absolute z-10"
+                            style={{
+                              left: `${Math.max(5, Math.min(95, p.riskScore))}%`,
+                              bottom: `${Math.max(5, Math.min(95, p.safetyScore))}%`,
+                              transform: 'translate(-50%, 50%)'
+                            }}
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 100 }}
+                          >
+                            {isActive ? (
+                              /* Glowing focal cursor for active proposal */
+                              <div className="relative flex items-center justify-center">
+                                <div 
+                                  className="absolute rounded-full w-12 h-12 opacity-30 animate-ping"
+                                  style={{ backgroundColor: pointColor }} 
+                                />
+                                <div 
+                                  className="absolute rounded-full w-4 h-4 shadow-[0_0_20px_rgba(255,255,255,0.7)] border-2 border-white cursor-pointer"
+                                  style={{ backgroundColor: pointColor }}
+                                />
+                                <div className="absolute top-6 flex flex-col items-center bg-slate-900 border border-white/10 p-2.5 rounded-xl w-48 text-left shadow-2xl backdrop-blur-md">
+                                  <span className="text-[10px] font-bold text-white truncate max-w-full">
+                                    {p.title}
+                                  </span>
+                                  <div className="flex justify-between items-center w-full mt-1">
+                                    <span className="text-[9px] text-gray-400 font-mono">Score: {p.safetyScore}%</span>
+                                    <span 
+                                      className="text-[8px] px-1.5 py-0.5 rounded uppercase font-mono font-bold"
+                                      style={{
+                                        backgroundColor: `${pointColor}15`,
+                                        color: pointColor
+                                      }}
+                                    >
+                                      {p.zone} Zone
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              /* Small dot for other proposals */
+                              <div 
+                                onClick={() => {
+                                  setValResult(p);
+                                  setProposalInput(p.title);
+                                  handleAnalyzeTreaties(p.title);
                                 }}
+                                className="relative group flex items-center justify-center cursor-pointer"
                               >
-                                {valResult.zone} Zone
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
+                                <div 
+                                  className="rounded-full w-3.5 h-3.5 border border-white/40 opacity-70 group-hover:scale-125 group-hover:opacity-100 transition-all duration-150"
+                                  style={{ backgroundColor: pointColor }} 
+                                />
+                                {/* Tiny tooltip on hover */}
+                                <div className="absolute top-5 hidden group-hover:flex flex-col items-center bg-slate-900 border border-white/10 p-1.5 rounded-lg w-32 text-center shadow-xl pointer-events-none z-20">
+                                  <span className="text-[9px] font-medium text-white truncate max-w-full">
+                                    {p.title}
+                                  </span>
+                                  <span className="text-[8px] text-gray-400 font-mono mt-0.5">{p.safetyScore}% Compliance</span>
+                                </div>
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      })}
                     </AnimatePresence>
 
                     {/* Zone Labeling text overlay */}

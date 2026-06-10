@@ -129,6 +129,22 @@ class SovereignMindServicer:
       alternate_recommendation=res["alternate_recommendation"]
     )
 
+  async def EvaluateAuthorityProposal(self, request, context):
+    print(f"📡 [gRPC] EvaluateAuthorityProposal called for: '{request.title}'")
+    res = await constitutional_layer.evaluate_authority_proposal(request.title)
+    
+    return services_pb2.AuthorityProposalResponse(
+      title=request.title,
+      safety_score=float(res["safetyScore"]),
+      risk_score=float(res["riskScore"]),
+      civil_liberty_impact=res["civilLibertyImpact"],
+      recommendation=res["recommendation"],
+      zone=res["zone"],
+      constitutional_points=res["constitutionalPoints"],
+      violations=res["violations"],
+      explanation=res["explanation"]
+    )
+
   async def StartSandboxSimulation(self, request, context):
     print(f"📡 [gRPC] StartSandboxSimulation called over {request.epochs} epochs")
     
@@ -200,6 +216,160 @@ class SovereignMindServicer:
       performance_gain=res["performance_gain"],
       evaluation_report=res["evaluation_report"]
     )
+
+  async def RunCrisisScenario(self, request, context):
+    print(f"📡 [gRPC] RunCrisisScenario called for crises: {list(request.crises)}")
+    res = await sandbox_engine.run_crisis_scenario(
+      list(request.crises),
+      request.scenario_name or "Custom Scenario"
+    )
+
+    pop = res.get("simulatedPopulation", {})
+    eco = res.get("economicShock", {})
+    panic = res.get("panicSentiment", {})
+
+    age_groups_pb = [
+      services_pb2.AgeGroupProto(
+        group=ag["group"],
+        percentage=float(ag["percentage"]),
+        reaction=ag["reaction"]
+      ) for ag in pop.get("ageGroups", [])
+    ]
+
+    income_classes_pb = [
+      services_pb2.IncomeClassProto(
+        income_class=ic.get("class", ic.get("income_class", "")),
+        percentage=float(ic["percentage"]),
+        vulnerability=ic["vulnerability"]
+      ) for ic in pop.get("incomeClasses", [])
+    ]
+
+    migration = pop.get("migrationTendencies", {})
+    consumption = pop.get("consumptionPatterns", {})
+    political_prefs_pb = [
+      services_pb2.PoliticalPrefProto(
+        faction=p["faction"],
+        percentage=float(p["percentage"]),
+        sentiment=p["sentiment"]
+      ) for p in pop.get("politicalPreferences", [])
+    ]
+
+    return services_pb2.CrisisScenarioResponse(
+      scenario_name=res.get("scenarioName", "Custom Scenario"),
+      crises=list(res.get("crises", [])),
+      simulated_population=services_pb2.SimulatedPopulationProto(
+        total_agents=int(pop.get("totalAgents", 10000000)),
+        age_groups=age_groups_pb,
+        income_classes=income_classes_pb,
+        migration_tendencies=services_pb2.MigrationTendenciesProto(
+          rate=migration.get("rate", ""),
+          hotspots=list(migration.get("hotspots", [])),
+          description=migration.get("description", "")
+        ),
+        consumption_patterns=services_pb2.ConsumptionPatternsProto(
+          hoarding_risk=consumption.get("hoardingRisk", ""),
+          essential_good_demand=consumption.get("essentialGoodDemand", ""),
+          description=consumption.get("description", "")
+        ),
+      ),
+      economic_shock=services_pb2.EconomicShockProto(
+        oil_crisis_premium=float(eco.get("oilCrisisPremium", 0)),
+        food_shortages_index=float(eco.get("foodShortagesIndex", 0)),
+        disruption_summary=eco.get("disruptionSummary", "")
+      ),
+      panic_sentiment=services_pb2.PanicSentimentProto(
+        realtime_narratives=list(panic.get("realtimeNarratives", [])),
+        protest_propensity=float(panic.get("protestPropensity", 0)),
+        misinformation_strength=float(panic.get("misinformationStrength", 0))
+      ),
+      political_preferences=political_prefs_pb,
+      cascade_links=list(res.get("cascadeLinks", [])),
+      resilience_score=float(res.get("resilienceScore", 50)),
+      estimated_recovery_months=float(res.get("estimatedRecoveryMonths", 18))
+    )
+
+  async def RunDetailedSimulation(self, request, context):
+    print(f"📡 [gRPC] RunDetailedSimulation called over {request.epochs} epochs for crises: {list(request.crises)}")
+    import torch
+
+    crises = list(request.crises)
+    epochs = request.epochs or 10
+
+    model = sandbox_engine.model
+    stress = torch.zeros(6, dtype=torch.float32)
+
+    for crisis in crises:
+      c = crisis.lower()
+      if any(k in c for k in ["currency", "finance", "bank", "economic"]):
+        stress[1] += 0.4
+        stress[0] += 0.2
+      if any(k in c for k in ["grid", "power", "infra", "earthquake", "disaster"]):
+        stress[2] += 0.5
+        stress[3] += 0.3
+        stress[4] += 0.2
+      if any(k in c for k in ["cyber", "comms", "attack"]):
+        stress[2] += 0.3
+        stress[0] += 0.2
+      if any(k in c for k in ["supply", "food", "drought"]):
+        stress[3] += 0.5
+        stress[0] += 0.3
+      if any(k in c for k in ["rebellion", "unrest", "protest", "conflict", "war"]):
+        stress[4] += 0.6
+        stress[5] += 0.2
+      if any(k in c for k in ["pandemic", "disease", "health"]):
+        stress[0] += 0.3
+        stress[4] += 0.2
+
+    stress += 0.05
+    state = torch.tensor([0.2, 0.3, 0.1, 0.2, 0.1, 0.02], dtype=torch.float32)
+
+    for epoch in range(1, epochs + 1):
+      with torch.no_grad():
+        state = model(state, stress)
+        stress = stress * 0.95
+
+      panic = float(state[0])
+      econ = float(state[1])
+      infra = float(state[2])
+      supply = float(state[3])
+      unrest = float(state[4])
+      collapse = float(state[5])
+
+      status = sandbox_engine._generate_status_message(epoch, panic, econ, unrest, collapse)
+
+      yield services_pb2.DetailedSimTick(
+        epoch=epoch,
+        panic_level=panic,
+        economic_disruption=econ,
+        infra_instability=infra,
+        supply_chain_failure=supply,
+        civil_unrest=unrest,
+        collapse_probability=collapse,
+        status_message=status
+      )
+
+  async def GenerateRecoveryPaths(self, request, context):
+    print(f"📡 [gRPC] GenerateRecoveryPaths called for crises: {list(request.crises)}")
+    res = await sandbox_engine.generate_recovery_paths(
+      list(request.crises),
+      request.scenario_id or ""
+    )
+
+    def to_proto(d):
+      return services_pb2.RecoveryScenarioProto(
+        trajectory=d.get("trajectory", ""),
+        probability=float(d.get("probability", 0)),
+        description=d.get("description", ""),
+        estimated_months=int(d.get("estimatedMonths", 0))
+      )
+
+    return services_pb2.RecoveryPathResponse(
+      best_case=to_proto(res.get("bestCase", {})),
+      expected=to_proto(res.get("expected", {})),
+      worst_case=to_proto(res.get("worstCase", {})),
+      overall_recommendation=res.get("overallRecommendation", "")
+    )
+
 
 async def serve_grpc():
   server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))

@@ -1553,6 +1553,47 @@ You must return a response in strict JSON format mapping to the exact schema:
   app.post('/api/connectivity-test', (req, res) => res.json({ success: true }));
   app.post('/api/audit-log', (req, res) => res.json({ success: true }));
 
+  // ==========================================
+  // GRAPHQL PROXY → Gateway Node (port 4000)
+  // ==========================================
+  app.post('/api/graphql', async (req, res) => {
+    try {
+      const http = await import('http');
+      const body = JSON.stringify(req.body);
+      const options = {
+        hostname: 'localhost',
+        port: 4000,
+        path: '/graphql',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      };
+      const proxyReq = http.request(options, (proxyRes) => {
+        let data = '';
+        proxyRes.on('data', (chunk) => { data += chunk; });
+        proxyRes.on('end', () => {
+          res.setHeader('Content-Type', 'application/json');
+          res.status(proxyRes.statusCode || 200).send(data);
+        });
+      });
+      proxyReq.on('error', (err) => {
+        console.error('[GraphQL Proxy] Error:', err.message);
+        res.status(503).json({ errors: [{ message: 'Gateway unavailable. Is the backend running on port 4000?' }] });
+      });
+      proxyReq.write(body);
+      proxyReq.end();
+    } catch (err: any) {
+      res.status(500).json({ errors: [{ message: err.message }] });
+    }
+  });
+
+  // GET also for Apollo Studio compatibility
+  app.get('/api/graphql', (req, res) => {
+    res.redirect('http://localhost:4000/graphql');
+  });
+
   // 5. Connect Vite middleware in development or serve static build files in production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

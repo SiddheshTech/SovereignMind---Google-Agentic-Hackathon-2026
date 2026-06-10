@@ -83,3 +83,43 @@ export function optimizePrompt(agentId: string, taskDescription: string, systemP
     });
   });
 }
+
+export function evaluateAuthorityProposal(title: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.EvaluateAuthorityProposal({ title }, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+// ── Sandbox Methods ──────────────────────────────────────────────────────────
+
+export function runCrisisScenario(crises: string[], scenarioName: string = 'Custom Scenario'): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.RunCrisisScenario(
+      { crises, scenario_name: scenarioName },
+      (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response);
+      }
+    );
+  });
+}
+
+/** Returns a gRPC readable stream. Caller must iterate over it. */
+export function runDetailedSimulation(crises: string[], epochs: number): any {
+  return grpcClient.RunDetailedSimulation({ crises, epochs });
+}
+
+export function generateRecoveryPaths(crises: string[], scenarioId: string = ''): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GenerateRecoveryPaths(
+      { crises, scenario_id: scenarioId },
+      (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response);
+      }
+    );
+  });
+}

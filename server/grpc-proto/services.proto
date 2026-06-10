@@ -18,6 +18,18 @@ service SovereignMindService {
 
   // Self-Improving Agent Loop / Autonomous Prompt Optimization
   rpc OptimizePrompt (PromptOptimizeRequest) returns (PromptOptimizeResponse);
+
+  // Authority Maps Policy Evaluation
+  rpc EvaluateAuthorityProposal (AuthorityProposalRequest) returns (AuthorityProposalResponse);
+
+  // Sandbox: Crisis Scenario Analysis (AI-powered)
+  rpc RunCrisisScenario (CrisisScenarioRequest) returns (CrisisScenarioResponse);
+
+  // Sandbox: Detailed Streaming Simulation Ticks
+  rpc RunDetailedSimulation (DetailedSimRequest) returns (stream DetailedSimTick);
+
+  // Sandbox: Recovery Path Generation (AI-powered)
+  rpc GenerateRecoveryPaths (RecoveryPathRequest) returns (RecoveryPathResponse);
 }
 
 // Sovereignty Genome Messages
@@ -141,4 +153,125 @@ message PromptOptimizeResponse {
   string optimized_prompt = 2;
   double performance_gain = 3;
   string evaluation_report = 4;
+}
+
+message AuthorityProposalRequest {
+  string title = 1;
+}
+
+message AuthorityProposalResponse {
+  string title = 1;
+  double safety_score = 2;
+  double risk_score = 3;
+  string civil_liberty_impact = 4;
+  string recommendation = 5;
+  string zone = 6;
+  repeated string constitutional_points = 7;
+  repeated string violations = 8;
+  string explanation = 9;
+}
+
+// Sandbox: Crisis Scenario Messages
+message CrisisScenarioRequest {
+  repeated string crises = 1;
+  string scenario_name = 2;
+}
+
+message AgeGroupProto {
+  string group = 1;
+  double percentage = 2;
+  string reaction = 3;
+}
+
+message IncomeClassProto {
+  string income_class = 1;
+  double percentage = 2;
+  string vulnerability = 3;
+}
+
+message MigrationTendenciesProto {
+  string rate = 1;
+  repeated string hotspots = 2;
+  string description = 3;
+}
+
+message ConsumptionPatternsProto {
+  string hoarding_risk = 1;
+  string essential_good_demand = 2;
+  string description = 3;
+}
+
+message SimulatedPopulationProto {
+  int64 total_agents = 1;
+  repeated AgeGroupProto age_groups = 2;
+  repeated IncomeClassProto income_classes = 3;
+  MigrationTendenciesProto migration_tendencies = 4;
+  ConsumptionPatternsProto consumption_patterns = 5;
+}
+
+message EconomicShockProto {
+  double oil_crisis_premium = 1;
+  double food_shortages_index = 2;
+  string disruption_summary = 3;
+}
+
+message PanicSentimentProto {
+  repeated string realtime_narratives = 1;
+  double protest_propensity = 2;
+  double misinformation_strength = 3;
+}
+
+message PoliticalPrefProto {
+  string faction = 1;
+  double percentage = 2;
+  string sentiment = 3;
+}
+
+message CrisisScenarioResponse {
+  string scenario_name = 1;
+  repeated string crises = 2;
+  SimulatedPopulationProto simulated_population = 3;
+  EconomicShockProto economic_shock = 4;
+  PanicSentimentProto panic_sentiment = 5;
+  repeated PoliticalPrefProto political_preferences = 6;
+  repeated string cascade_links = 7;
+  double resilience_score = 8;
+  double estimated_recovery_months = 9;
+}
+
+// Sandbox: Detailed Simulation Streaming
+message DetailedSimRequest {
+  repeated string crises = 1;
+  int32 epochs = 2;
+}
+
+message DetailedSimTick {
+  int32 epoch = 1;
+  double panic_level = 2;
+  double economic_disruption = 3;
+  double infra_instability = 4;
+  double supply_chain_failure = 5;
+  double civil_unrest = 6;
+  double collapse_probability = 7;
+  string status_message = 8;
+}
+
+// Sandbox: Recovery Path Messages
+message RecoveryPathRequest {
+  repeated string crises = 1;
+  string scenario_id = 2;
+}
+
+message RecoveryScenarioProto {
+  string trajectory = 1;
+  double probability = 2;
+  string description = 3;
+  int32 estimated_months = 4;
+}
+
+message RecoveryPathResponse {
+  RecoveryScenarioProto best_case = 1;
+  RecoveryScenarioProto expected = 2;
+  RecoveryScenarioProto worst_case = 3;
+  string overall_recommendation = 4;
 }
