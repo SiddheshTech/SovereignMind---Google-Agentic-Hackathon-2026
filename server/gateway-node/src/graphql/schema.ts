@@ -1,4 +1,41 @@
 export const typeDefs = `#graphql
+  type GeneCategory {
+    LeadershipContinuity: Float
+    InstitutionalStrength: Float
+    PolicyStability: Float
+    BureaucraticEfficiency: Float
+    
+    FiscalResilience: Float
+    TradeDiversity: Float
+    InflationResistance: Float
+    LaborAdaptability: Float
+    
+    SocialTrust: Float
+    CommunityResilience: Float
+    EducationQuality: Float
+    CulturalCohesion: Float
+    
+    EnergySecurity: Float
+    TransportReliability: Float
+    DigitalConnectivity: Float
+    HealthcareCapacity: Float
+  }
+
+  type DetailedGenomeResponse {
+    countryCode: String!
+    nationName: String!
+    overallResilienceIndex: Float!
+    governanceGenes: GeneCategory
+    economicGenes: GeneCategory
+    socialGenes: GeneCategory
+    infrastructureGenes: GeneCategory
+  }
+
+  type SimilarityResult {
+    nationName: String!
+    matchPercentage: Float!
+  }
+
   type Trait {
     id: String!
     name: String!
@@ -192,6 +229,8 @@ export const typeDefs = `#graphql
 
   type Query {
     getGenome(countryCode: String!): GenomeResponse
+    getDetailedGenome(countryCode: String!): DetailedGenomeResponse
+    getSimilarity(countryCode: String!): [SimilarityResult!]
     searchGenomes(query: String!, limit: Int): [GenomeResponse!]
     evaluateAction(countryCode: String!, proposedAction: String!, context: String!): ConstitutionalResponse
     getAuthorityProposals: [AuthorityProposal!]!

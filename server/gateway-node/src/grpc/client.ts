@@ -84,14 +84,21 @@ export function optimizePrompt(agentId: string, taskDescription: string, systemP
   });
 }
 
+<<<<<<< HEAD
 export function evaluateAuthorityProposal(title: string): Promise<any> {
   return new Promise((resolve, reject) => {
     grpcClient.EvaluateAuthorityProposal({ title }, (err: any, response: any) => {
+=======
+export function calculateSimilarity(countryCode: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.CalculateSimilarity({ country_code: countryCode }, (err: any, response: any) => {
+>>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
       if (err) return reject(err);
       resolve(response);
     });
   });
 }
+<<<<<<< HEAD
 
 // ── Sandbox Methods ──────────────────────────────────────────────────────────
 
@@ -123,3 +130,5 @@ export function generateRecoveryPaths(crises: string[], scenarioId: string = '')
     );
   });
 }
+=======
+>>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745

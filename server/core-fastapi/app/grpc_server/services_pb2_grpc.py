@@ -44,6 +44,11 @@ class SovereignMindServiceStub:
                 request_serializer=services__pb2.GenomeSearchRequest.SerializeToString,
                 response_deserializer=services__pb2.GenomeSearchResponse.FromString,
                 _registered_method=True)
+        self.CalculateSimilarity = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/CalculateSimilarity',
+                request_serializer=services__pb2.SimilarityRequest.SerializeToString,
+                response_deserializer=services__pb2.SimilarityResponse.FromString,
+                _registered_method=True)
         self.RunConstitutionalEvaluation = channel.unary_unary(
                 '/sovereignmind.SovereignMindService/RunConstitutionalEvaluation',
                 request_serializer=services__pb2.ConstitutionalRequest.SerializeToString,
@@ -97,6 +102,12 @@ class SovereignMindServiceServicer:
         raise NotImplementedError('Method not implemented!')
 
     def SearchGenomeTraits(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CalculateSimilarity(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -170,6 +181,11 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
                     servicer.SearchGenomeTraits,
                     request_deserializer=services__pb2.GenomeSearchRequest.FromString,
                     response_serializer=services__pb2.GenomeSearchResponse.SerializeToString,
+            ),
+            'CalculateSimilarity': grpc.unary_unary_rpc_method_handler(
+                    servicer.CalculateSimilarity,
+                    request_deserializer=services__pb2.SimilarityRequest.FromString,
+                    response_serializer=services__pb2.SimilarityResponse.SerializeToString,
             ),
             'RunConstitutionalEvaluation': grpc.unary_unary_rpc_method_handler(
                     servicer.RunConstitutionalEvaluation,
@@ -266,6 +282,33 @@ class SovereignMindService:
             '/sovereignmind.SovereignMindService/SearchGenomeTraits',
             services__pb2.GenomeSearchRequest.SerializeToString,
             services__pb2.GenomeSearchResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CalculateSimilarity(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/CalculateSimilarity',
+            services__pb2.SimilarityRequest.SerializeToString,
+            services__pb2.SimilarityResponse.FromString,
             options,
             channel_credentials,
             insecure,

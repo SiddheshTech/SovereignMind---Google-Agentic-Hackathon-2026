@@ -4,6 +4,7 @@ import {
   runConstitutionalEvaluation,
   draftEmergencyContract,
   optimizePrompt,
+<<<<<<< HEAD
   evaluateAuthorityProposal,
   runCrisisScenario,
   runDetailedSimulation,
@@ -115,6 +116,15 @@ function grpcScenarioToDoc(res: any) {
     cascadeLinks: res.cascade_links || [],
   };
 }
+=======
+  calculateSimilarity
+} from '../grpc/client';
+import { triggerSandboxStream } from '../websockets/simulation_stream';
+import { CivilizationGenome } from '../models/CivilizationGenome';
+import connectDB from '../config/db';
+
+connectDB();
+>>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
 
 export const resolvers = {
   Query: {
@@ -132,6 +142,24 @@ export const resolvers = {
         return response.results || [];
       } catch (err) {
         console.error('GraphQL Error searchGenomes:', err);
+        throw err;
+      }
+    },
+    getDetailedGenome: async (_: any, { countryCode }: { countryCode: string }) => {
+      try {
+        const genome = await CivilizationGenome.findOne({ countryCode: countryCode.toUpperCase() });
+        return genome;
+      } catch (err) {
+        console.error('GraphQL Error getDetailedGenome:', err);
+        throw err;
+      }
+    },
+    getSimilarity: async (_: any, { countryCode }: { countryCode: string }) => {
+      try {
+        const response = await calculateSimilarity(countryCode);
+        return response.results || [];
+      } catch (err) {
+        console.error('GraphQL Error getSimilarity:', err);
         throw err;
       }
     },

@@ -217,6 +217,7 @@ class SovereignMindServicer:
       evaluation_report=res["evaluation_report"]
     )
 
+<<<<<<< HEAD
   async def RunCrisisScenario(self, request, context):
     print(f"📡 [gRPC] RunCrisisScenario called for crises: {list(request.crises)}")
     res = await sandbox_engine.run_crisis_scenario(
@@ -370,6 +371,19 @@ class SovereignMindServicer:
       overall_recommendation=res.get("overallRecommendation", "")
     )
 
+=======
+  async def CalculateSimilarity(self, request, context):
+    print(f"📡 [gRPC] CalculateSimilarity called for: {request.country_code}")
+    
+    # Mocking comparative intelligence matching
+    results = [
+      services_pb2.SimilarityResult(nation_name="Japan", match_percentage=81.0),
+      services_pb2.SimilarityResult(nation_name="South Korea", match_percentage=76.0),
+      services_pb2.SimilarityResult(nation_name="Singapore", match_percentage=72.0)
+    ]
+    
+    return services_pb2.SimilarityResponse(results=results)
+>>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
 
 async def serve_grpc():
   server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
