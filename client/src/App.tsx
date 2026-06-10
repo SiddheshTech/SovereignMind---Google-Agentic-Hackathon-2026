@@ -92,6 +92,61 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Restore user session on mount if JWT token exists
+  useEffect(() => {
+    const verifySession = async () => {
+      const token = localStorage.getItem('sovereignmind_token');
+      if (!token) return;
+
+      try {
+        const response = await fetch('http://localhost:4000/api/auth/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.user) {
+            setLoggedInUser({
+              name: data.user.fullName,
+              institution: data.user.company || 'SovereignMind Operator',
+              clearanceLevel: data.user.role || 'Sector Level 3 Planner',
+              enclaveRegion: data.user.enclaveRegion || 'Alpine Sector-12 Tactical Enclave',
+            });
+            setActiveTab('signin');
+          }
+        } else {
+          // Token expired or invalid
+          localStorage.removeItem('sovereignmind_token');
+          localStorage.removeItem('sovereignmind_user');
+        }
+      } catch (err) {
+        console.error('Failed to verify session with backend:', err);
+        // Fallback to locally stored user info if we are offline
+        const savedUserStr = localStorage.getItem('sovereignmind_user');
+        if (savedUserStr) {
+          try {
+            const savedUser = JSON.parse(savedUserStr);
+            setLoggedInUser({
+              name: savedUser.fullName || savedUser.name,
+              institution: savedUser.company || savedUser.institution || 'SovereignMind Operator',
+              clearanceLevel: savedUser.role || savedUser.clearanceLevel || 'Sector Level 3 Planner',
+              enclaveRegion: savedUser.enclaveRegion || 'Alpine Sector-12 Tactical Enclave',
+            });
+            setActiveTab('signin');
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+    };
+
+    verifySession();
+  }, []);
+
   const handleContactSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (contactEmail && contactName) {
@@ -430,6 +485,8 @@ export default function App() {
                     user={loggedInUser} 
                     onUpgrade={() => setActiveTab('pricing')}
                     onLogout={() => {
+                      localStorage.removeItem('sovereignmind_token');
+                      localStorage.removeItem('sovereignmind_user');
                       setLoggedInUser(null);
                       setActiveTab('home');
                     }} 
@@ -545,10 +602,22 @@ export default function App() {
                           )}
 
                           <form
-                            onSubmit={(e) => {
+                            onSubmit={async (e) => {
                               e.preventDefault();
-                              if (!authName || !authInstitution || !authEmail || !authPassword) {
-                                setAuthError('All fields are required to register your profile.');
+                              if (!authName.trim()) {
+                                setAuthError('Full name is required.');
+                                return;
+                              }
+                              if (!authInstitution.trim()) {
+                                setAuthError('Company / Organization is required.');
+                                return;
+                              }
+                              if (!authEmail.trim()) {
+                                setAuthError('Email address is required.');
+                                return;
+                              }
+                              if (!authPassword || authPassword.length < 6) {
+                                setAuthError('Password must be at least 6 characters.');
                                 return;
                               }
                               if (!authAgreement) {
@@ -559,15 +628,46 @@ export default function App() {
                               setAuthError('');
                               setIsAuthenticating(true);
 
-                              setTimeout(() => {
+                              try {
+                                const response = await fetch('http://localhost:4000/api/auth/signup', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    fullName: authName.trim(),
+                                    email: authEmail.trim(),
+                                    password: authPassword,
+                                    company: authInstitution.trim(),
+                                    role: authClearance,
+                                    agreedToTerms: authAgreement,
+                                  }),
+                                });
+
+                                const data = await response.json();
+
+                                if (!response.ok) {
+                                  setAuthError(data.error || 'Registration failed. Please try again.');
+                                  setIsAuthenticating(false);
+                                  return;
+                                }
+
+                                // Store JWT token
+                                if (data.token) {
+                                  localStorage.setItem('sovereignmind_token', data.token);
+                                  localStorage.setItem('sovereignmind_user', JSON.stringify(data.user));
+                                }
+
                                 setIsAuthenticating(false);
                                 setLoggedInUser({
-                                  name: authName,
-                                  institution: authInstitution,
-                                  clearanceLevel: authClearance,
-                                  enclaveRegion: 'Alpine Sector-12 Tactical Enclave'
+                                  name: data.user.fullName,
+                                  institution: data.user.company || authInstitution,
+                                  clearanceLevel: data.user.role || authClearance,
+                                  enclaveRegion: data.user.enclaveRegion || 'Alpine Sector-12 Tactical Enclave',
                                 });
-                              }, 1200);
+                              } catch (err: any) {
+                                console.error('Signup network error:', err);
+                                setAuthError('Unable to connect to server. Please ensure the backend is running on port 4000.');
+                                setIsAuthenticating(false);
+                              }
                             }}
                             className="space-y-4"
                           >
@@ -639,6 +739,31 @@ export default function App() {
                                     className="w-full bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 focus:border-pink-500/50 text-white rounded-xl p-3 pl-9 text-xs focus:outline-none transition-all placeholder-gray-655"
                                     placeholder="••••••••••••••"
                                   />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-mono uppercase text-gray-400 tracking-wide block">
+                                  Clearance Level (Role)
+                                </label>
+                                <div className="relative">
+                                  <Shield size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                                  <select
+                                    value={authClearance}
+                                    onChange={(e) => setAuthClearance(e.target.value)}
+                                    className="w-full bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 text-white rounded-xl p-3 pl-9 text-xs focus:outline-none focus:border-pink-500/50 transition-all appearance-none cursor-pointer"
+                                  >
+                                    <option value="Sector Level 3 Planner" className="bg-[#030303] text-white">Sector Level 3 Planner</option>
+                                    <option value="Federal Reserve Custodian" className="bg-[#030303] text-white">Federal Reserve Custodian</option>
+                                    <option value="Quantum Level 4 Overseer (Admin)" className="bg-[#030303] text-white">Quantum Level 4 Overseer (Admin)</option>
+                                    <option value="Logistics Administrator" className="bg-[#030303] text-white">Logistics Administrator</option>
+                                    <option value="Regional Water Coordinator" className="bg-[#030303] text-white">Regional Water Coordinator</option>
+                                  </select>
+                                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                    <svg className="fill-current h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                  </div>
                                 </div>
                               </div>
                             </div>

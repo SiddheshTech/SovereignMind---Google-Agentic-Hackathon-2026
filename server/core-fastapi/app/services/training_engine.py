@@ -4,7 +4,7 @@ import torch.optim as optim
 import os
 import random
 import asyncio
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 from app.agents.llm_router import llm_router
 from app.db.database import AsyncSessionLocal
 from app.db.models import PromptOptimizationModel # Reuse optimization model table or save logs locally
