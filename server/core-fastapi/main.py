@@ -1,6 +1,6 @@
 import asyncio
 import uvicorn
-from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlmodel import SQLModel, select
@@ -38,9 +38,6 @@ from app.tasks.tasks import async_constitutional_audit, async_emergency_procurem
 # MCP Introspection imports
 from app.agents.mcp_server import mcp_server
 
-# Dataset Caching import
-from app.core.dataset_manager import dataset_manager
-
 # Tracing and Eval imports
 from app.eval.tracing import setup_phoenix_tracing, log_agent_trace
 from app.eval.optimizer import prompt_optimizer
@@ -71,16 +68,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 async def startup_event():
   print("🔥 Starting up SovereignMind FastAPI Core AI Service...")
   
-  # 1. Initialize SQLite/PostgreSQL schemas
+  # 1. Initialize SQLite/PostgreSQL schemas (creates genomes, audits, simulations, contracts, prompt optimizers)
   await init_db()
   
-  # 2. Preload global datasets into memory for instant real-time response
-  dataset_manager.preload_data()
-  
-  # 3. Register OpenTelemetry instrumentation for Arize Phoenix
+  # 2. Register OpenTelemetry instrumentation for Arize Phoenix
   setup_phoenix_tracing()
   
-  # 4. Spin up the gRPC Server in the background loop!
+  # 3. Spin up the gRPC Server in the background loop!
   asyncio.create_task(serve_grpc())
   print("📡 Concurrent background gRPC Server scheduled.")
 
@@ -224,17 +218,6 @@ async def start_sandbox_simulation_endpoint(payload: Dict[str, Any]):
     "epochs": epochs
   }
 
-@app.websocket("/ws/v1/sandbox/{country_code}")
-async def websocket_sandbox_endpoint(websocket: WebSocket, country_code: str):
-  """Real-time WebSocket streaming of the PyTorch transition network state."""
-  await websocket.accept()
-  print(f"🔌 WebSocket connected for Live Sandbox: {country_code}")
-  try:
-    async for tick in sandbox_engine.run_simulation(country_code, epochs=10, active_crises=["supply", "rebellion"]):
-      await websocket.send_json(tick)
-  except WebSocketDisconnect:
-    print(f"❌ WebSocket disconnected: {country_code}")
-
 @app.post("/api/v1/agent-sandbox-run")
 async def run_agent_sandbox_pipeline(payload: Dict[str, Any]):
   country_code = payload.get("country_code", "US")
@@ -262,7 +245,6 @@ async def run_autogen_agent_debate(payload: Dict[str, Any]):
 
 @app.post("/api/v1/emergency-contract")
 async def run_emergency_contract_autopilot(payload: Dict[str, Any]):
-  country_code = payload.get("country_code", "US")
   item_needed = payload.get("item_needed", "")
   quantity = payload.get("quantity", 1)
   reason = payload.get("reason", "")
@@ -270,7 +252,7 @@ async def run_emergency_contract_autopilot(payload: Dict[str, Any]):
   if not item_needed:
     raise HTTPException(status_code=400, detail="item_needed is required")
     
-  res = await crew_workflow_manager.run_emergency_contract_crew(country_code, item_needed, quantity, reason)
+  res = await crew_workflow_manager.run_emergency_contract_crew(item_needed, quantity, reason)
   return res
 
 @app.post("/api/v1/optimize-prompt")
