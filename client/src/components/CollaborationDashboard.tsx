@@ -1,35 +1,62 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Users, FileText, Video, MessageSquare, Plus, Search, Shield, Pin, ExternalLink, Calendar, CheckCircle2, X, Download, Share2, Link, Mic, MicOff, Hand, Send, LayoutList, History, CornerDownLeft, Clock, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { io } from 'socket.io-client';
 
-const ARTIFACT_DB = [
-  { id: '1', title: 'Threat Assessment 1A', date: 'Today, 14:00', type: 'report', metadata: 'Sector 4, Risk Lvl 5', history: [{ v: '1.2', d: 'Today 13:00' }] },
-  { id: '2', title: 'Logistics Reroute Plan', date: 'Yesterday', type: 'pdf', metadata: 'Supply routes 3 & 4', history: [{ v: '1.0', d: 'Yesterday 09:00' }] },
-  { id: '3', title: 'Energy Output Projections', date: 'Oct 12', type: 'sheet', metadata: 'Q4 Projections', history: [{ v: '2.4', d: 'Oct 11' }] },
-  { id: '4', title: 'Treaty Violation Evidence', date: 'Oct 10', type: 'image', metadata: 'Visual data pack', history: [{ v: '1.0', d: 'Oct 10' }] },
-];
+const fetchGraphQL = async (query: string, variables = {}) => {
+  const response = await fetch('http://localhost:4000/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables })
+  });
+  const json = await response.json();
+  if (json.errors) {
+    throw new Error(json.errors[0].message);
+  }
+  return json.data;
+};
+
+const GET_COLLABORATION_DATA = `
+  query GetCollaborationData {
+    getCollaborationData {
+      rooms { id name type category ping unread }
+      users { id name status }
+      artifacts { id title date type metadata history { v d } }
+      messages { roomId sender text time }
+    }
+  }
+`;
+
+const CREATE_ROOM = `
+  mutation CreateCollaborationRoom($name: String!, $type: String!, $category: String!) {
+    createCollaborationRoom(name: $name, type: $type, category: $category) {
+      id name type category ping unread
+    }
+  }
+`;
+
+const SEND_MESSAGE = `
+  mutation SendCollaborationMessage($roomId: String!, $sender: String!, $text: String!) {
+    sendCollaborationMessage(roomId: $roomId, sender: $sender, text: $text) {
+      roomId sender text time
+    }
+  }
+`;
 
 export function CollaborationDashboard() {
-  const [rooms, setRooms] = useState([
-    { id: 'r1', name: 'Global Threat Triage', type: 'video', category: 'pinned', ping: true, unread: 0 },
-    { id: 'r2', name: 'Sector 4 Logistics', type: 'chat', category: 'pinned', ping: false, unread: 0 },
-    { id: 'o1', name: 'Grid Collapse Sigma', type: 'chat', category: 'operation', ping: false, unread: 4 },
-    { id: 'o2', name: 'Naval Embargo Comms', type: 'video', category: 'operation', ping: false, unread: 0 },
-    { id: 'o3', name: 'Supply Chain Alpha', type: 'chat', category: 'operation', ping: false, unread: 0 },
-  ]);
+  const [loading, setLoading] = useState(true);
 
-  const [users, setUsers] = useState([
-    { id: 'u1', name: 'Cmdr. J. Vance', status: 'online' },
-    { id: 'u2', name: 'Operative K. Thorne', status: 'busy' },
-    { id: 'u3', name: 'SysAdmin 04', status: 'offline' },
-  ]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [artifacts, setArtifacts] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<{ [key: string]: any[] }>({});
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchHistory, setSearchHistory] = useState(['Sector 4', 'Sigma']);
 
-  const [activeRoomId, setActiveRoomId] = useState('r1');
+  const [activeRoomId, setActiveRoomId] = useState('');
   const [isJoinStreamLoad, setIsJoinStreamLoad] = useState(false);
   const [isStreamJoined, setIsStreamJoined] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -40,41 +67,57 @@ export function CollaborationDashboard() {
 
   const [showArtifactModal, setShowArtifactModal] = useState<{ open: boolean; artifact: any }>({ open: false, artifact: null });
   const [showAllArtifacts, setShowAllArtifacts] = useState(false);
-
-  const [chatMessages, setChatMessages] = useState<{ [key: string]: { sender: string; text: string; time: string }[] }>({
-    'r1': [{ sender: 'System', text: 'Channel established.', time: '09:00' }],
-    'o1': [{ sender: 'Cmdr. J. Vance', text: 'Status update on collapse?', time: '11:15' }]
-  });
   const [chatInput, setChatInput] = useState('');
-
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  // Simulation of Presence and Real-time Updates
+  // Update local state when query finishes
   useEffect(() => {
-    const presenceTimer = setInterval(() => {
-      setUsers(prev => prev.map(u => {
-        if (Math.random() > 0.8) {
-          const statuses = ['online', 'busy', 'away', 'offline'];
-          const nextStatus = statuses[Math.floor(Math.random() * statuses.length)];
-          return { ...u, status: nextStatus };
-        }
-        return u;
-      }));
-    }, 15000);
+    fetchGraphQL(GET_COLLABORATION_DATA).then(data => {
+      const d = data.getCollaborationData;
+      setRooms(d.rooms);
+      setUsers(d.users);
+      setArtifacts(d.artifacts);
+      
+      const messagesMap: { [key: string]: any[] } = {};
+      d.messages.forEach((m: any) => {
+        if (!messagesMap[m.roomId]) messagesMap[m.roomId] = [];
+        messagesMap[m.roomId].push(m);
+      });
+      setChatMessages(messagesMap);
 
-    const messageTimer = setInterval(() => {
-      if (Math.random() > 0.7) {
-        setChatMessages(prev => {
-          const updated = { ...prev };
-          if (!updated['r1']) updated['r1'] = [];
-          updated['r1'] = [...updated['r1'], { sender: 'System Monitor', text: 'Ping received at Sector 4.', time: new Date().toLocaleTimeString() }];
-          return updated;
-        });
-        addNotification('New activity in Global Threat Triage', 'r1');
+      if (d.rooms.length > 0) {
+        setActiveRoomId(d.rooms[0].id);
       }
-    }, 20000);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }, []);
 
-    return () => { clearInterval(presenceTimer); clearInterval(messageTimer); };
+  // Real-time updates via WebSocket
+  useEffect(() => {
+    const socket = io('http://localhost:4000/ws/collaboration');
+
+    socket.on('COLLABORATION_ROOM_CREATED', (newRoom: any) => {
+      setRooms(prev => [newRoom, ...prev]);
+      addNotification(`New room created: ${newRoom.name}`);
+    });
+
+    socket.on('COLLABORATION_MESSAGE_SENT', (msg: any) => {
+      setChatMessages(prev => {
+        const updated = { ...prev };
+        if (!updated[msg.roomId]) updated[msg.roomId] = [];
+        updated[msg.roomId] = [...updated[msg.roomId], msg];
+        return updated;
+      });
+      
+      if (msg.sender !== 'You') {
+         addNotification(`New message from ${msg.sender}`, msg.roomId);
+      }
+    });
+
+    return () => { socket.disconnect(); };
   }, []);
 
   useEffect(() => {
@@ -88,15 +131,20 @@ export function CollaborationDashboard() {
     setNotifications(prev => [{ id: Date.now().toString(), text: msg, read: false, roomId }, ...prev]);
   };
 
-  const handleCreateRoom = (e: React.FormEvent) => {
+  const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoomForm.name) return;
-    const newRoom = { id: `nr_${Date.now()}`, name: newRoomForm.name, type: 'chat', category: 'operation', ping: true, unread: 0 };
-    setRooms(prev => [newRoom, ...prev]);
-    setShowNewRoomModal(false);
-    setActiveRoomId(newRoom.id);
-    addNotification(`Room "${newRoomForm.name}" created.`);
-    setNewRoomForm({ name: '', description: '', class: 'Internal', participants: '' });
+    
+    try {
+      const data = await fetchGraphQL(CREATE_ROOM, { name: newRoomForm.name, type: 'chat', category: 'operation' });
+      setShowNewRoomModal(false);
+      if (data?.createCollaborationRoom) {
+         setActiveRoomId(data.createCollaborationRoom.id);
+      }
+      setNewRoomForm({ name: '', description: '', class: 'Internal', participants: '' });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleJoinStream = () => {
@@ -114,17 +162,26 @@ export function CollaborationDashboard() {
     setIsHandRaised(false);
   };
 
-  const handleSendChat = (e: React.FormEvent) => {
+  const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
-    setChatMessages(prev => {
-      const updated = { ...prev };
-      if (!updated[activeRoomId]) updated[activeRoomId] = [];
-      updated[activeRoomId] = [...updated[activeRoomId], { sender: 'You', text: chatInput, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }];
-      return updated;
-    });
+    if (!chatInput.trim() || !activeRoomId) return;
+    
+    const text = chatInput;
     setChatInput('');
+    try {
+      await fetchGraphQL(SEND_MESSAGE, { roomId: activeRoomId, sender: 'You', text });
+    } catch (e) {
+       console.error(e);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-[1200px] mx-auto h-[800px] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const activeRoom = rooms.find(r => r.id === activeRoomId) || users.find(u => u.id === activeRoomId) as any;
   const isDirectLink = !!users.find(u => u.id === activeRoomId);
@@ -135,7 +192,7 @@ export function CollaborationDashboard() {
     setIsSearchFocused(false);
   };
 
-  const filteredItems = [...rooms, ...users, ...ARTIFACT_DB].filter(item => 
+  const filteredItems = [...rooms, ...users, ...artifacts].filter(item => 
     (item as any).name?.toLowerCase().includes(debouncedQuery.toLowerCase()) || 
     (item as any).title?.toLowerCase().includes(debouncedQuery.toLowerCase())
   );
@@ -371,7 +428,7 @@ export function CollaborationDashboard() {
               </div>
 
               <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none">
-                 {ARTIFACT_DB.map(doc => (
+                 {artifacts.map(doc => (
                    <DocCard key={doc.id} title={doc.title} date={doc.date} type={doc.type} onClick={() => setShowArtifactModal({ open: true, artifact: doc })} />
                  ))}
                </div>
@@ -398,166 +455,78 @@ export function CollaborationDashboard() {
                  <div>
                    <label className="block text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1.5">Classification</label>
                    <select value={newRoomForm.class} onChange={e => setNewRoomForm({...newRoomForm, class: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-white focus:outline-none focus:border-pink-500 appearance-none">
-                      <option>Unclassified</option>
-                      <option>Internal Use Only</option>
-                      <option>Confidential</option>
-                      <option>Top Secret / restricted</option>
+                     <option value="Internal">Internal Unclassified</option>
+                     <option value="Secret">Secret (Level 2)</option>
+                     <option value="TopSecret">Top Secret / SCI</option>
                    </select>
                  </div>
-                 <div>
-                   <label className="block text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1.5">Participants (Comma Separated)</label>
-                   <input type="text" value={newRoomForm.participants} onChange={e => setNewRoomForm({...newRoomForm, participants: e.target.value})} placeholder="e.g. Cmdr. Vance, Operative K." className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-3 text-sm text-white focus:outline-none focus:border-pink-500" />
-                 </div>
-                 <div className="pt-4 flex gap-3">
-                   <button type="button" onClick={() => setShowNewRoomModal(false)} className="px-4 py-2.5 rounded-lg border border-slate-700 text-gray-300 hover:bg-slate-800 text-xs font-bold transition flex-1 cursor-pointer">Cancel</button>
-                   <button type="submit" disabled={!newRoomForm.name} className="px-4 py-2.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold transition flex-1 flex justify-center items-center cursor-pointer disabled:opacity-50">Create Room</button>
-                 </div>
+                 <button type="submit" className="w-full py-3 bg-pink-600 hover:bg-pink-500 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer mt-2">INITIALIZE WORKSPACE</button>
                </form>
              </motion.div>
            </div>
          )}
-
-         {showArtifactModal.open && showArtifactModal.artifact && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
-               <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-                 <div className="flex items-center gap-3">
-                   <FileText size={20} className="text-gray-400" />
-                   <div>
-                     <h3 className="text-white font-bold text-sm">{showArtifactModal.artifact.title}</h3>
-                     <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">{showArtifactModal.artifact.type} • {showArtifactModal.artifact.date}</span>
-                   </div>
-                 </div>
-                 <div className="flex items-center gap-2">
-                   <button onClick={() => addNotification(`Downloaded ${showArtifactModal.artifact.title}`)} className="p-2 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-lg transition-colors cursor-pointer"><Download size={14} /></button>
-                   <button onClick={() => addNotification(`Shared ${showArtifactModal.artifact.title}`)} className="p-2 bg-slate-800 hover:bg-slate-700 text-gray-300 rounded-lg transition-colors cursor-pointer"><Share2 size={14} /></button>
-                   <button onClick={() => setShowArtifactModal({ open: false, artifact: null })} className="p-2 text-gray-500 hover:text-white transition cursor-pointer"><X size={16} /></button>
-                 </div>
-               </div>
-               <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-[400px]">
-                 <div className="flex-1 bg-black/50 p-8 flex items-center justify-center overflow-y-auto border-r border-slate-800">
-                    <div className="max-w-md w-full aspect-video bg-slate-800/50 border border-slate-700 rounded-xl flex items-center justify-center flex-col text-gray-500">
-                       <FileText size={48} className="mb-4 opacity-50" />
-                       <span className="font-bold text-sm">Secure Preview Encrypted</span>
-                       <span className="text-xs font-mono mt-2">Requires clearance Level 2</span>
-                    </div>
-                 </div>
-                 <div className="w-full md:w-64 bg-slate-900 overflow-y-auto p-4 space-y-6">
-                    <div>
-                      <h4 className="text-[10px] font-bold uppercase text-gray-500 tracking-widest mb-2 border-b border-slate-800 pb-2">Metadata</h4>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex justify-between"><span className="text-gray-500 font-mono">Location</span><span className="text-gray-300 font-medium">Secured Vault 03</span></div>
-                        <div className="flex justify-between"><span className="text-gray-500 font-mono">Tags</span><span className="text-pink-400 font-medium">{showArtifactModal.artifact.metadata}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-500 font-mono">Owner</span><span className="text-gray-300 font-medium">SYS_ADMIN</span></div>
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-[10px] font-bold uppercase text-gray-500 tracking-widest mb-2 border-b border-slate-800 pb-2">Version History</h4>
-                      <div className="space-y-3">
-                         {showArtifactModal.artifact.history.map((h: any, i: number) => (
-                           <div key={i} className="flex gap-3">
-                             <div className="w-2 h-2 rounded-full border border-pink-500 mt-1 bg-pink-500/20" />
-                             <div>
-                               <div className="text-xs text-white font-bold">Version {h.v}</div>
-                               <div className="text-[10px] font-mono text-gray-500">{h.d}</div>
-                             </div>
-                           </div>
-                         ))}
-                      </div>
-                    </div>
-                 </div>
-               </div>
-             </motion.div>
-           </div>
-         )}
-         
-         {showAllArtifacts && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
-               <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
-                 <h3 className="text-white font-bold text-lg tracking-widest flex items-center gap-2"><FileText size={20} className="text-pink-400" /> ARTIFACT LIBRARY</h3>
-                 <button onClick={() => setShowAllArtifacts(false)} className="text-gray-500 hover:text-white transition cursor-pointer"><X size={16} /></button>
-               </div>
-               <div className="flex-1 overflow-y-auto p-6 bg-[#030712]">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                     {ARTIFACT_DB.map(doc => (
-                       <DocCard key={`lib-${doc.id}`} title={doc.title} date={doc.date} type={doc.type} onClick={() => {
-                          setShowAllArtifacts(false);
-                          setShowArtifactModal({ open: true, artifact: doc });
-                       }} />
-                     ))}
-                     {ARTIFACT_DB.map(doc => (
-                       <DocCard key={`lib-dup-${doc.id}`} title={`Archive: ${doc.title}`} date="Older" type={doc.type} onClick={() => {
-                          setShowAllArtifacts(false);
-                          setShowArtifactModal({ open: true, artifact: { ...doc, title: `Archive: ${doc.title}` } });
-                       }} />
-                     ))}
-                  </div>
-               </div>
-             </motion.div>
-           </div>
-         )}
       </AnimatePresence>
+      
+      {/* Notifications Toast */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
+        <AnimatePresence>
+           {notifications.map(n => (
+             <motion.div key={n.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="bg-slate-800 border border-slate-700 p-4 rounded-xl shadow-2xl flex items-center gap-3 w-80 pointer-events-auto">
+               <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+               <div className="flex-1 text-sm text-white">{n.text}</div>
+               <button onClick={() => setNotifications(prev => prev.filter(x => x.id !== n.id))} className="text-gray-500 hover:text-white cursor-pointer"><X size={14}/></button>
+             </motion.div>
+           ))}
+        </AnimatePresence>
+      </div>
+
     </div>
   );
 }
 
-function RoomItem({ name, type, active, ping, unread, onClick }: any) {
+function RoomItem({ name, type, active, ping, unread, onClick }: { name: string, type: string, active: boolean, ping: boolean, unread: number, onClick: () => void, key?: any }) {
   return (
-    <div onClick={onClick} className={`p-3 rounded-xl border flex justify-between items-center cursor-pointer transition-colors ${active ? 'bg-pink-500/10 border-pink-500/30' : 'bg-transparent border-slate-800 hover:border-slate-700'}`}>
-       <div className="flex items-center gap-3">
-          {type === 'video' ? <Video size={14} className={active ? 'text-rose-400' : 'text-gray-500'} /> : <MessageSquare size={14} className={active ? 'text-pink-400' : 'text-gray-500'} />}
-          <span className={`text-xs font-medium truncate w-32 ${active ? 'text-white' : 'text-gray-300'}`}>{name}</span>
-       </div>
-       {ping && <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_5px_theme(colors.rose.500)]" />}
-       {unread > 0 && <span className="px-1.5 py-0.5 bg-pink-500 text-white font-bold text-[9px] rounded">{unread}</span>}
-    </div>
-  )
-}
-
-function UserItem({ name, status, active, onClick }: any) {
-  const getStatusColor = () => {
-    switch(status) {
-      case 'online': return 'bg-emerald-500';
-      case 'busy': return 'bg-rose-500';
-      case 'away': return 'bg-amber-500';
-      default: return 'bg-gray-600';
-    }
-  }
-
-  return (
-    <div onClick={onClick} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors group ${active ? 'bg-pink-500/10' : 'hover:bg-slate-900'}`}>
-       <div className="flex items-center gap-3">
-         <div className="relative">
-           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold border transition-colors ${active ? 'bg-pink-900 border-pink-700 text-pink-200' : 'bg-slate-800 border-slate-700 text-gray-400'}`}>
-             {name.charAt(0)}
-           </div>
-           <div className={`absolute -bottom-1 -right-1 w-3 h-3 border-2 border-[#030712] rounded-full transition-colors ${getStatusColor()}`} />
+    <button onClick={onClick} className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors cursor-pointer group ${active ? 'bg-pink-500/10 border border-pink-500/20' : 'bg-slate-900 border border-slate-800 hover:border-slate-700'}`}>
+       <div className="flex items-center gap-3 overflow-hidden">
+         <div className={`p-1.5 rounded-lg ${active ? 'bg-pink-500/20 text-pink-400' : 'bg-slate-800 text-gray-400 group-hover:text-gray-300'}`}>
+           {type === 'video' ? <Video size={14} /> : <MessageSquare size={14} />}
          </div>
-         <span className={`text-xs font-medium transition-colors ${active ? 'text-pink-300' : 'text-gray-300 group-hover:text-white'}`}>{name}</span>
+         <span className={`text-xs font-semibold truncate ${active ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'}`}>{name}</span>
+       </div>
+       <div className="flex items-center gap-2">
+         {ping && <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>}
+         {unread > 0 && <div className="px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[10px] font-bold">{unread}</div>}
+       </div>
+    </button>
+  );
+}
+
+function UserItem({ name, status, active, onClick }: { name: string, status: string, active: boolean, onClick: () => void, key?: any }) {
+  const statusColor = status === 'online' ? 'bg-emerald-500' : status === 'busy' ? 'bg-rose-500' : status === 'away' ? 'bg-amber-500' : 'bg-slate-600';
+  return (
+    <button onClick={onClick} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer group ${active ? 'bg-slate-800 border border-slate-700' : 'bg-slate-900 border border-slate-800 hover:border-slate-700'}`}>
+       <div className="relative">
+         <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white border border-slate-600">{name.charAt(0)}</div>
+         <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-[#030712] ${statusColor}`}></div>
+       </div>
+       <div className="flex flex-col items-start overflow-hidden">
+         <span className="text-xs font-semibold text-gray-300 truncate w-full text-left">{name}</span>
+         <span className="text-[10px] text-gray-500 capitalize">{status}</span>
+       </div>
+    </button>
+  );
+}
+
+function DocCard({ title, date, type, onClick }: { title: string, date: string, type: string, onClick: () => void, key?: any }) {
+  return (
+    <div onClick={onClick} className="w-48 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col justify-between cursor-pointer group transition-all hover:-translate-y-1">
+       <div>
+         <div className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center text-pink-400 mb-3 group-hover:bg-pink-500/10 group-hover:scale-110 transition-all">
+           {type === 'video' ? <Video size={16} /> : <FileText size={16} />}
+         </div>
+         <h5 className="text-xs font-bold text-white mb-1 line-clamp-2">{title}</h5>
+         <span className="text-[10px] text-gray-500 font-mono">{date}</span>
        </div>
     </div>
-  )
+  );
 }
-
-function DocCard({ title, date, type, onClick }: any) {
-  return (
-    <div onClick={onClick} className="min-w-[200px] w-48 p-4 bg-[#030712] border border-slate-800 hover:border-slate-700 rounded-xl cursor-pointer group transition-colors flex flex-col justify-between shrink-0 h-[100px]">
-      <div className="flex justify-between items-start mb-2">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0
-          ${type === 'report' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 
-            type === 'sheet' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 
-            type === 'pdf' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 
-            'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
-          <FileText size={14} />
-        </div>
-        <ExternalLink size={14} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
-      </div>
-      <div className="overflow-hidden">
-        <h5 className="text-sm font-bold text-white truncate leading-tight">{title}</h5>
-        <span className="text-[10px] font-mono text-gray-500">{date}</span>
-      </div>
-    </div>
-  )
-}
-

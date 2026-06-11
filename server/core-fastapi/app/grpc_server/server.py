@@ -51,6 +51,10 @@ from app.services.sandbox_engine import sandbox_engine
 from app.services.procurement_autopilot import procurement_autopilot
 from app.eval.optimizer import prompt_optimizer
 from app.services.settings_manager import settings_manager
+from app.services.command_center_engine import command_center_engine
+from app.services.executive_briefing_engine import executive_briefing_engine
+from app.services.metric_detail_engine import metric_detail_engine
+from app.services.operator_dashboard_engine import operator_dashboard_engine
 
 class SovereignMindServicer:
   """
@@ -600,7 +604,203 @@ class SovereignMindServicer:
         context.set_details(str(e))
         return services_pb2.DeleteComplianceRecordResponse(success=False)
 
+  # =========================================================================
+  # RESTORED ENDPOINTS
+  # =========================================================================
+
+  async def GenerateRiskRadarData(self, request, context):
+      from app.services.risk_radar import risk_radar
+      return self._build_radar_response(risk_radar.get_radar_data())
+
+  async def GenerateForecastData(self, request, context):
+      from app.services.forecast_engine import forecast_engine
+      return self._build_forecast_response(forecast_engine.generate_forecast(request.timeframe))
+
+  async def GenerateBlackSwanData(self, request, context):
+      from app.services.black_swan_engine import black_swan_engine
+      return self._build_blackswan_response(black_swan_engine.generate_blackswan())
+
+  async def GetNationModelData(self, request, context):
+      from app.services.nation_model_engine import nation_model_engine
+      return self._build_nationmodel_response(nation_model_engine.get_nation_model_data())
+
+  async def ExecuteShockScenario(self, request, context):
+      from app.services.nation_model_engine import nation_model_engine
+      return self._build_nationmodel_response(nation_model_engine.execute_shock_scenario(request.scenarioId))
+
+  async def GenerateDependenciesData(self, request, context):
+      from app.services.dependencies_engine import dependencies_engine
+      return self._build_dependencies_response(dependencies_engine.get_dependencies_data())
+
+  async def GetInfrastructureData(self, request, context):
+      from app.services.infrastructure_engine import infrastructure_engine
+      return self._build_infrastructure_response(infrastructure_engine.get_infrastructure_data())
+
+  async def SimulateInfrastructureUpdate(self, request, context):
+      from app.services.infrastructure_engine import infrastructure_engine
+      return self._build_infrastructure_response(infrastructure_engine.simulate_update())
+
+  async def GetAnalyticsData(self, request, context):
+      from app.services.analytics_engine import analytics_engine
+      data = analytics_engine.get_analytics()
+      return self._build_analytics_response(data)
+
+  async def SimulateAnalyticsUpdate(self, request, context):
+      from app.services.analytics_engine import analytics_engine
+      data = await analytics_engine.simulate_update()
+      return self._build_analytics_response(data)
+
+  async def GenerateSynthesisReport(self, request, context):
+      from app.services.analytics_engine import analytics_engine
+      r = await analytics_engine.generate_synthesis(request.domain, request.horizon)
+      import services_pb2
+      return services_pb2.IntelligenceReport(
+        id=str(r.get('id', '')),
+        title=str(r.get('title', '')),
+        desc=str(r.get('desc', '')),
+        date=str(r.get('date', '')),
+        confidence=int(r.get('confidence', 0)),
+        category=str(r.get('category', '')),
+        isCritical=bool(r.get('isCritical', False))
+      )
+
+  async def GetCrisisData(self, request, context):
+      from app.services.crisis_engine import crisis_engine
+      return self._build_crisis_response(crisis_engine.get_crisis_data())
+
+  async def SimulateCrisisUpdate(self, request, context):
+      from app.services.crisis_engine import crisis_engine
+      return self._build_crisis_response(crisis_engine.simulate_crisis_update())
+
+  async def GeneratePolicyOptions(self, request, context):
+      from app.services.crisis_engine import crisis_engine
+      return self._build_policy_response(crisis_engine.generate_policy_options(request.prompt))
+
+  async def GetProcurementData(self, request, context):
+      from app.services.procurement_engine import procurement_engine
+      return self._build_procurement_response(procurement_engine.get_procurement_data())
+
+  async def SimulateProcurementUpdate(self, request, context):
+      from app.services.procurement_engine import procurement_engine
+      return self._build_procurement_response(procurement_engine.simulate_procurement_update())
+
+  async def GetIntelligenceGraphData(self, request, context):
+      from app.services.intelligence_graph import intelligence_graph
+      return self._build_intelligence_response(intelligence_graph.get_intelligence_data())
+
+  async def SimulateIntelligenceUpdate(self, request, context):
+      from app.services.intelligence_graph import intelligence_graph
+      return self._build_intelligence_response(await intelligence_graph.simulate_update())
+
+  async def SendCopilotMessage(self, request, context):
+      from app.services.copilot_engine import copilot_engine
+      res = copilot_engine.process_prompt(request.prompt)
+      import services_pb2
+      return services_pb2.SendCopilotMessageResponse(**res)
+
+  # =========================================================================
+  # COLLABORATION DASHBOARD ENDPOINTS
+  # =========================================================================
+
+  async def GetCollaborationData(self, request, context):
+      from app.services.collaboration_engine import collaboration_engine
+      import services_pb2
+      try:
+          data = collaboration_engine.get_initial_data()
+          return services_pb2.CollaborationData(**data)
+      except Exception as e:
+          context.set_code(grpc.StatusCode.INTERNAL)
+          context.set_details(str(e))
+          return services_pb2.CollaborationData()
+
+  async def CreateCollaborationRoom(self, request, context):
+      from app.services.collaboration_engine import collaboration_engine
+      import services_pb2
+      import uuid
+      try:
+          new_room = {
+              "id": f"nr_{uuid.uuid4().hex[:8]}",
+              "name": request.name,
+              "type": request.type,
+              "category": request.category,
+              "ping": True,
+              "unread": 0
+          }
+          collaboration_engine.rooms.insert(0, new_room)
+          return services_pb2.CollaborationRoom(**new_room)
+      except Exception as e:
+          context.set_code(grpc.StatusCode.INTERNAL)
+          context.set_details(str(e))
+          return services_pb2.CollaborationRoom()
+
+  async def SendCollaborationMessage(self, request, context):
+      from app.services.collaboration_engine import collaboration_engine
+      import services_pb2
+      try:
+          msg = collaboration_engine.simulate_message(request.roomId, request.text)
+          return services_pb2.CollaborationMessage(**msg)
+      except Exception as e:
+          context.set_code(grpc.StatusCode.INTERNAL)
+          context.set_details(str(e))
+          return services_pb2.CollaborationMessage()
+
+  # ── NEW DASHBOARD ENDPOINTS ──
+  
+  async def GetCommandCenterData(self, request, context):
+      import services_pb2
+      data = command_center_engine.get_data()
+      return services_pb2.CommandCenterDataProto(**data)
+
+  async def RefreshCommandCenterData(self, request, context):
+      import services_pb2
+      data = command_center_engine.get_data()
+      return services_pb2.CommandCenterDataProto(**data)
+
+  async def GetExecutiveBriefingData(self, request, context):
+      import services_pb2
+      data = executive_briefing_engine.get_data()
+      return services_pb2.ExecutiveBriefingDataProto(**data)
+
+  async def RefreshExecutiveBriefingData(self, request, context):
+      import services_pb2
+      data = executive_briefing_engine.get_data()
+      return services_pb2.ExecutiveBriefingDataProto(**data)
+
+  async def GetMetricDetail(self, request, context):
+      import services_pb2
+      data = metric_detail_engine.get_data(request.metric_id)
+      return services_pb2.MetricDetailDataProto(**data)
+
+  async def SimulateEmergencyPowers(self, request, context):
+      import services_pb2
+      data = constitutional_layer.simulate_emergency_powers(request.scenario)
+      return services_pb2.EmergencyPowersResultProto(
+          scenario=data["scenario"],
+          allowedActions=data["allowedActions"],
+          restrictedActions=data["restrictedActions"],
+          judicialRisk=services_pb2.EmergencyRiskAssessmentProto(**data["judicialRisk"]),
+          politicalRisk=services_pb2.EmergencyRiskAssessmentProto(**data["politicalRisk"]),
+          treatyImpact=data["treatyImpact"]
+      )
+
+  async def AnalyzeTreatyConstraints(self, request, context):
+      import services_pb2
+      data = constitutional_layer.analyze_treaty_constraints(request.proposal)
+      return services_pb2.TreatyConstraintResultProto(
+          proposal=data["proposal"],
+          agreements=[services_pb2.TreatyAgreementProto(**a) for a in data["agreements"]]
+      )
+
+  async def GetOperatorDashboardData(self, request, context):
+      import services_pb2
+      data = operator_dashboard_engine.get_data()
+      return services_pb2.OperatorDashboardDataProto(
+          notifications=[services_pb2.NotificationProto(**n) for n in data["notifications"]],
+          timeline=[services_pb2.ActivityTimelineEventProto(**t) for t in data["timeline"]]
+      )
+
 async def serve_grpc():
+
   server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
   
   # Register servicer class

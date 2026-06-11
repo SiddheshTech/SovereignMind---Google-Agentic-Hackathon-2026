@@ -12,7 +12,7 @@ export function initWebSocketServer(server: Server) {
 
   server.on('upgrade', (request, socket, head) => {
     const url = request.url || '';
-    const allowedPaths = ['/ws/sandbox', '/ws/authority-maps', '/ws/sandbox-ticks', '/ws/settings'];
+    const allowedPaths = ['/ws/sandbox', '/ws/authority-maps', '/ws/sandbox-ticks', '/ws/settings', '/ws/procurement', '/ws/intelligence'];
     if (allowedPaths.includes(url)) {
       wss?.handleUpgrade(request, socket, head, (ws) => {
         wss?.emit('connection', ws, request);
@@ -52,7 +52,11 @@ export function initWebSocketServer(server: Server) {
         ? 'Sandbox Ticks'
         : pathname === '/ws/settings'
           ? 'Settings'
-          : 'Sandbox';
+          : pathname === '/ws/procurement'
+            ? 'Procurement'
+            : pathname === '/ws/intelligence'
+              ? 'Intelligence'
+              : 'Sandbox';
     ws.send(JSON.stringify({ type: 'INFO', message: `Connected to SovereignMind Real-time ${label} Stream` }));
   });
 }

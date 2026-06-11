@@ -259,3 +259,238 @@ export function deleteComplianceRecord(id: string): Promise<any> {
     });
   });
 }
+
+// ── NEW ENDPOINTS RESTORED + COLLABORATION ──
+
+export function generateRiskRadarData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GenerateRiskRadarData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function generateForecastData(timeframe: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GenerateForecastData({ timeframe }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function generateBlackSwanData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GenerateBlackSwanData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function getNationModelData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetNationModelData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function executeShockScenario(scenarioId: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.ExecuteShockScenario({ scenarioId }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function generateDependenciesData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GenerateDependenciesData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function getInfrastructureData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetInfrastructureData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function simulateInfrastructureUpdate(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SimulateInfrastructureUpdate({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function getAnalyticsData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetAnalyticsData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function simulateAnalyticsUpdate(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SimulateAnalyticsUpdate({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function generateSynthesisReport(domain: string, horizon: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GenerateSynthesisReport({ domain, horizon }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function getCrisisData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetCrisisData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function simulateCrisisUpdate(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SimulateCrisisUpdate({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function generatePolicyOptions(prompt: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GeneratePolicyOptions({ prompt }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function getProcurementData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetProcurementData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function simulateProcurementUpdate(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SimulateProcurementUpdate({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function getIntelligenceGraphData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetIntelligenceGraphData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function simulateIntelligenceUpdate(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SimulateIntelligenceUpdate({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function sendCopilotMessage(prompt: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SendCopilotMessage({ prompt }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+// ── COLLABORATION ENDPOINTS ──
+
+export function getCollaborationData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetCollaborationData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function createCollaborationRoom(name: string, type: string, category: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.CreateCollaborationRoom({ name, type, category }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+export function sendCollaborationMessage(roomId: string, sender: string, text: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SendCollaborationMessage({ roomId, sender, text }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+// ── COMMAND CENTER ENDPOINTS ──
+
+export function getCommandCenterData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetCommandCenterData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+export function refreshCommandCenterData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.RefreshCommandCenterData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+// ── EXECUTIVE BRIEFING ENDPOINTS ──
+
+export function getExecutiveBriefingData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetExecutiveBriefingData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+export function refreshExecutiveBriefingData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.RefreshExecutiveBriefingData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+// ── METRIC DETAIL ENDPOINTS ──
+
+export function getMetricDetail(metricId: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetMetricDetail({ metric_id: metricId }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+// ── EMERGENCY POWERS & TREATY ENDPOINTS ──
+
+export function simulateEmergencyPowers(scenario: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SimulateEmergencyPowers({ scenario }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+export function analyzeTreatyConstraints(proposal: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.AnalyzeTreatyConstraints({ proposal }, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
+// ── OPERATOR DASHBOARD ENDPOINTS ──
+
+export function getOperatorDashboardData(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetOperatorDashboardData({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+

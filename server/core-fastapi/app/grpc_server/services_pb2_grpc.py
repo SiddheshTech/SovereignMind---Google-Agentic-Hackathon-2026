@@ -5,7 +5,7 @@ import warnings
 
 import services_pb2 as services__pb2
 
-GRPC_GENERATED_VERSION = '1.81.0'
+GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -25,7 +25,7 @@ if _version_not_supported:
     )
 
 
-class SovereignMindServiceStub:
+class SovereignMindServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -154,9 +154,14 @@ class SovereignMindServiceStub:
                 request_serializer=services__pb2.DeleteComplianceRecordRequest.SerializeToString,
                 response_deserializer=services__pb2.DeleteComplianceRecordResponse.FromString,
                 _registered_method=True)
+        self.GenerateRiskRadar = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateRiskRadar',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.RiskRadarResponse.FromString,
+                _registered_method=True)
 
 
-class SovereignMindServiceServicer:
+class SovereignMindServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def GetSovereigntyGenome(self, request, context):
@@ -313,6 +318,13 @@ class SovereignMindServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GenerateRiskRadar(self, request, context):
+        """Foresight Engine: Risk Radar
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SovereignMindServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -436,6 +448,11 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
                     request_deserializer=services__pb2.DeleteComplianceRecordRequest.FromString,
                     response_serializer=services__pb2.DeleteComplianceRecordResponse.SerializeToString,
             ),
+            'GenerateRiskRadar': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateRiskRadar,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.RiskRadarResponse.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'sovereignmind.SovereignMindService', rpc_method_handlers)
@@ -444,7 +461,7 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
 
 
  # This class is part of an EXPERIMENTAL API.
-class SovereignMindService:
+class SovereignMindService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -1085,6 +1102,33 @@ class SovereignMindService:
             '/sovereignmind.SovereignMindService/DeleteComplianceRecord',
             services__pb2.DeleteComplianceRecordRequest.SerializeToString,
             services__pb2.DeleteComplianceRecordResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateRiskRadar(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GenerateRiskRadar',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.RiskRadarResponse.FromString,
             options,
             channel_credentials,
             insecure,

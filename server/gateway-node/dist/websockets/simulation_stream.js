@@ -3,41 +3,73 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.initWebSocketServer = initWebSocketServer;
 exports.broadcast = broadcast;
 exports.triggerSandboxStream = triggerSandboxStream;
+exports.triggerDetailedSimStream = triggerDetailedSimStream;
 const ws_1 = require("ws");
 const client_1 = require("../grpc/client");
+const CrisisSimulation_1 = require("../models/CrisisSimulation");
 let wss = null;
 const clients = new Set();
+const clientPaths = new WeakMap();
 function initWebSocketServer(server) {
     wss = new ws_1.WebSocketServer({ noServer: true });
     server.on('upgrade', (request, socket, head) => {
-        if (request.url === '/ws/sandbox') {
+        const url = request.url || '';
+        const allowedPaths = ['/ws/sandbox', '/ws/authority-maps', '/ws/sandbox-ticks', '/ws/settings', '/ws/procurement', '/ws/intelligence'];
+        if (allowedPaths.includes(url)) {
             wss?.handleUpgrade(request, socket, head, (ws) => {
                 wss?.emit('connection', ws, request);
             });
         }
     });
-    wss.on('connection', (ws) => {
-        console.log('WebSocket Client Connected');
+    wss.on('connection', (ws, request) => {
+        const pathname = request.url || '/ws/sandbox';
+        console.log(`WebSocket Client Connected to: ${pathname}`);
+        clientPaths.set(ws, pathname);
         clients.add(ws);
         ws.on('message', (message) => {
-            console.log(`Received message from client: ${message}`);
-            // Clients could push manual stress interventions here
+            console.log(`Received message from client on ${pathname}: ${message}`);
+            try {
+                const parsed = JSON.parse(message.toString());
+                if (parsed.type === 'RUN_GLOBAL_GENOMIC_SCAN') {
+                    ws.send(JSON.stringify({ type: 'SCAN_STATUS', status: 'INITIATING', message: 'Connecting to global AI feed...' }));
+                    setTimeout(() => ws.send(JSON.stringify({ type: 'SCAN_STATUS', status: 'IN_PROGRESS', message: 'Analyzing genetic variants...' })), 1000);
+                    setTimeout(() => ws.send(JSON.stringify({ type: 'SCAN_STATUS', status: 'COMPLETED', message: 'Global Genomic Scan Completed.' })), 3000);
+                }
+            }
+            catch (e) {
+                // ignore non-json
+            }
         });
         ws.on('close', () => {
-            console.log('WebSocket Client Disconnected');
+            console.log(`WebSocket Client Disconnected from: ${pathname}`);
             clients.delete(ws);
+            clientPaths.delete(ws);
         });
-        ws.send(JSON.stringify({ type: 'INFO', message: 'Connected to SovereignMind Real-time Sandbox Stream' }));
+        const label = pathname === '/ws/authority-maps'
+            ? 'Authority Maps'
+            : pathname === '/ws/sandbox-ticks'
+                ? 'Sandbox Ticks'
+                : pathname === '/ws/settings'
+                    ? 'Settings'
+                    : pathname === '/ws/procurement'
+                        ? 'Procurement'
+                        : pathname === '/ws/intelligence'
+                            ? 'Intelligence'
+                            : 'Sandbox';
+        ws.send(JSON.stringify({ type: 'INFO', message: `Connected to SovereignMind Real-time ${label} Stream` }));
     });
 }
-function broadcast(data) {
+function broadcast(data, path) {
     const payload = JSON.stringify(data);
     for (const client of clients) {
         if (client.readyState === ws_1.WebSocket.OPEN) {
-            client.send(payload);
+            if (!path || clientPaths.get(client) === path) {
+                client.send(payload);
+            }
         }
     }
 }
+/** Legacy sandbox stream (epoch-level ticks) */
 function triggerSandboxStream(countryCode, epochs, activeCrises) {
     console.log(`Initiating Sandbox Stream over gRPC for ${countryCode} with crises:`, activeCrises);
     try {
@@ -50,34 +82,108 @@ function triggerSandboxStream(countryCode, epochs, activeCrises) {
         });
         stream.on('data', (tick) => {
             console.log(`Received sandbox tick epoch ${tick.epoch} from FastAPI gRPC server`);
-            broadcast({
-                type: 'SIMULATION_TICK',
-                data: tick,
-            });
+            broadcast({ type: 'SIMULATION_TICK', data: tick });
         });
         stream.on('end', () => {
             console.log('Sandbox gRPC stream ended');
-            broadcast({
-                type: 'SIMULATION_STATUS',
-                status: 'COMPLETED',
-                message: 'Sandbox stress test successfully finalized.',
-            });
+            broadcast({ type: 'SIMULATION_STATUS', status: 'COMPLETED', message: 'Sandbox stress test successfully finalized.' });
         });
         stream.on('error', (err) => {
             console.error('gRPC Sandbox Stream Error:', err);
-            broadcast({
-                type: 'SIMULATION_STATUS',
-                status: 'ERROR',
-                message: err.message || 'Error occurred during simulation stream.',
-            });
+            broadcast({ type: 'SIMULATION_STATUS', status: 'ERROR', message: err.message || 'Error during simulation stream.' });
         });
     }
     catch (err) {
         console.error('Failed to trigger sandbox stream:', err);
+        broadcast({ type: 'SIMULATION_STATUS', status: 'FAILED', message: err.message || 'Failed to initialize gRPC connection.' });
+    }
+}
+/**
+ * New: Detailed simulation stream using RunDetailedSimulation gRPC.
+ * Broadcasts real PyTorch tick metrics over /ws/sandbox in real time.
+ * Also persists all ticks to MongoDB at the end.
+ */
+function triggerDetailedSimStream(crises, epochs, simulationId) {
+    console.log(`🎬 [WS] Starting detailed sim stream for sim ${simulationId} with crises:`, crises);
+    try {
+        const stream = (0, client_1.runDetailedSimulation)(crises, epochs);
+        const ticks = [];
         broadcast({
-            type: 'SIMULATION_STATUS',
-            status: 'FAILED',
-            message: err.message || 'Failed to initialize connection to FastAPI gRPC service.',
+            type: 'SIM_TICKS_STARTED',
+            simulationId,
+            crises,
+            totalEpochs: epochs,
+            message: `PyTorch simulation engine initializing — ${epochs} epochs starting...`,
+        }, '/ws/sandbox');
+        broadcast({
+            type: 'SIM_TICKS_STARTED',
+            simulationId,
+            crises,
+            totalEpochs: epochs,
+        }, '/ws/sandbox-ticks');
+        stream.on('data', (tick) => {
+            const tickData = {
+                epoch: tick.epoch,
+                panicLevel: tick.panic_level,
+                economicDisruption: tick.economic_disruption,
+                infraInstability: tick.infra_instability,
+                supplyChainFailure: tick.supply_chain_failure,
+                civilUnrest: tick.civil_unrest,
+                collapseProbability: tick.collapse_probability,
+                statusMessage: tick.status_message,
+            };
+            ticks.push(tickData);
+            // Real-time tick broadcast
+            broadcast({
+                type: 'SIM_TICK',
+                simulationId,
+                tick: tickData,
+            }, '/ws/sandbox');
+            broadcast({
+                type: 'SIM_TICK',
+                simulationId,
+                tick: tickData,
+            }, '/ws/sandbox-ticks');
         });
+        stream.on('end', async () => {
+            console.log(`✅ [WS] Detailed sim stream complete for ${simulationId} — ${ticks.length} ticks`);
+            // Persist ticks to MongoDB
+            try {
+                await CrisisSimulation_1.CrisisSimulation.findByIdAndUpdate(simulationId, {
+                    $set: { simulationTicks: ticks }
+                });
+                console.log(`💾 [WS] Ticks saved to MongoDB for sim ${simulationId}`);
+            }
+            catch (dbErr) {
+                console.error(`[WS] Failed to save ticks to MongoDB:`, dbErr);
+            }
+            broadcast({
+                type: 'SIM_TICKS_COMPLETE',
+                simulationId,
+                totalTicks: ticks.length,
+                message: 'Simulation complete. All epoch data persisted.',
+            }, '/ws/sandbox');
+            broadcast({
+                type: 'SIM_TICKS_COMPLETE',
+                simulationId,
+                totalTicks: ticks.length,
+            }, '/ws/sandbox-ticks');
+        });
+        stream.on('error', (err) => {
+            console.error(`[WS] Detailed sim stream error for ${simulationId}:`, err);
+            broadcast({
+                type: 'SIM_TICKS_ERROR',
+                simulationId,
+                message: err.message || 'Error during simulation tick stream.',
+            }, '/ws/sandbox');
+        });
+    }
+    catch (err) {
+        console.error(`[WS] Failed to start detailed sim stream:`, err);
+        broadcast({
+            type: 'SIM_TICKS_ERROR',
+            simulationId,
+            message: err.message || 'Failed to start simulation engine.',
+        }, '/ws/sandbox');
     }
 }

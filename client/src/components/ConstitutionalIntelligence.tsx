@@ -230,14 +230,34 @@ export function ConstitutionalIntelligence({ initialSubTab = 'maps' }: Constitut
     setSelectedEmergency(scenario);
     setIsEmergencyLoading(true);
     try {
-      const res = await fetch('/api/civilization/simulate-emergency', {
+      const res = await fetch('http://localhost:4000/graphql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario })
+        body: JSON.stringify({
+          query: `
+            mutation SimulateEmergency($scenario: String!) {
+              simulateEmergencyPowers(scenario: $scenario) {
+                scenario
+                allowedActions
+                restrictedActions
+                judicialRisk {
+                  level
+                  description
+                }
+                politicalRisk {
+                  level
+                  description
+                }
+                treatyImpact
+              }
+            }
+          `,
+          variables: { scenario }
+        })
       });
-      const data = await res.json();
-      if (data.result) {
-        setEmergencyResult(data.result);
+      const json = await res.json();
+      if (json.data && json.data.simulateEmergencyPowers) {
+        setEmergencyResult(json.data.simulateEmergencyPowers);
       }
     } catch (e) {
       console.error(e);
@@ -251,14 +271,28 @@ export function ConstitutionalIntelligence({ initialSubTab = 'maps' }: Constitut
     setTreatyProposal(proposalStr);
     setIsTreatyLoading(true);
     try {
-      const res = await fetch('/api/civilization/treaty-constraints', {
+      const res = await fetch('http://localhost:4000/graphql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proposal: proposalStr })
+        body: JSON.stringify({
+          query: `
+            mutation AnalyzeTreaty($proposal: String!) {
+              analyzeTreatyConstraints(proposal: $proposal) {
+                proposal
+                agreements {
+                  category
+                  status
+                  impact
+                }
+              }
+            }
+          `,
+          variables: { proposal: proposalStr }
+        })
       });
-      const data = await res.json();
-      if (data.result) {
-        setTreatyResult(data.result);
+      const json = await res.json();
+      if (json.data && json.data.analyzeTreatyConstraints) {
+        setTreatyResult(json.data.analyzeTreatyConstraints);
       }
     } catch (e) {
       console.error(e);

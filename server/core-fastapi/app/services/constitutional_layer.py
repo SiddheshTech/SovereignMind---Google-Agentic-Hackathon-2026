@@ -193,4 +193,42 @@ class ConstitutionalLayer:
             "explanation": f"The proposal for '{title}' is fully valid under standard constitutional charters and is cleared for immediate execution."
         }
 
+  def simulate_emergency_powers(self, scenario: str) -> Dict[str, Any]:
+    print(f"⚖️ Constitutional Layer simulating emergency powers for scenario: '{scenario}'")
+    # Stub logic mimicking AI validation
+    is_severe = "collapse" in scenario.lower() or "war" in scenario.lower()
+    return {
+      "scenario": scenario,
+      "allowedActions": [
+        "Deploy strategic reserves",
+        "Override local ordinances",
+        "Mandate curfew in affected sectors"
+      ] if is_severe else ["Issue advisory warnings", "Request voluntary rationing"],
+      "restrictedActions": [
+        "Suspend habeas corpus",
+        "Confiscate private communications",
+        "Deploy active military on domestic soil"
+      ],
+      "judicialRisk": {
+        "level": "CRITICAL" if is_severe else "MODERATE",
+        "description": "High probability of Supreme Court injunctions within 48 hours." if is_severe else "Standard appellate review anticipated."
+      },
+      "politicalRisk": {
+        "level": "HIGH",
+        "description": "Significant blowback from opposition factions expected."
+      },
+      "treatyImpact": "May violate Geneva Convention protocols regarding civilian movement restrictions." if is_severe else "No major international treaty violations projected."
+    }
+
+  def analyze_treaty_constraints(self, proposal: str) -> Dict[str, Any]:
+    print(f"⚖️ Constitutional Layer analyzing treaty constraints for proposal: '{proposal}'")
+    return {
+      "proposal": proposal,
+      "agreements": [
+        {"category": "Paris Climate Accord", "status": "Compliant", "impact": "No emissions violations detected."},
+        {"category": "NATO Article 5", "status": "Friction", "impact": "Potential non-intervention clause conflict."},
+        {"category": "Global Trade Pact", "status": "Violation Risk", "impact": "Proposed tariffs may trigger WTO sanctions."}
+      ]
+    }
+
 constitutional_layer = ConstitutionalLayer()

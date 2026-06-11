@@ -1,6 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Package, Truck, FileSignature, Box, Search, Filter, CheckCircle2, AlertTriangle, ShieldCheck, Factory, Archive, Download, Building, ArrowUpRight, ShieldAlert, Cpu } from 'lucide-react';
+
+async function graphqlRequest(query: string, variables: any = {}) {
+  const res = await fetch('/api/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables })
+  });
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors[0]?.message || 'GraphQL error');
+  return json.data;
+}
+
+const GQL_GET_PROCUREMENT = `
+  query {
+    getProcurementData {
+      vendors { name id category tier status reliability distance capacity }
+      contracts { id entity type date status }
+      mapNodes { id x y type statusText }
+      mapPaths { path stroke animated }
+      riskVectors { label val trend color detail }
+      defcon
+      activeScanAgents
+    }
+  }
+`;
+
+const GQL_SIMULATE_PROCUREMENT = `
+  mutation {
+    simulateProcurementUpdate {
+      defcon
+    }
+  }
+`;
 
 const PALETTE = {
   blue: '#3B82F6',
@@ -19,15 +52,41 @@ interface ProcurementDashboardProps {
 export function ProcurementDashboard({ initialTab = 'vendors' }: ProcurementDashboardProps) {
   const [activeTab, setActiveTab] = React.useState(initialTab);
 
-  React.useEffect(() => {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  useEffect(() => {
+    let ws: WebSocket;
+    const connect = () => {
+      ws = new WebSocket(`ws://${window.location.host}/ws/procurement`);
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'PROCUREMENT_DATA_UPDATED') {
+            setData(msg.data);
+          }
+        } catch(e) {}
+      };
+      ws.onclose = () => setTimeout(connect, 3000);
+    };
+
+    graphqlRequest(GQL_GET_PROCUREMENT).then(res => {
+      if (res?.getProcurementData) setData(res.getProcurementData);
+      connect();
+    }).catch(console.error);
+
+    return () => { if (ws) ws.close(); };
+  }, []);
+
   const [actionState, setActionState] = useState<{ id: string; status: 'idle' | 'loading' | 'success', message?: string}>( { id: '', status: 'idle' } );
 
   const handleAction = async (id: string, customMessage?: string) => {
     setActionState({ id, status: 'loading', message: customMessage });
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await graphqlRequest(GQL_SIMULATE_PROCUREMENT);
       setActionState({ id, status: 'success', message: customMessage });
       setTimeout(() => setActionState({ id: '', status: 'idle', message: undefined }), 2000);
     } catch {
@@ -65,7 +124,7 @@ export function ProcurementDashboard({ initialTab = 'vendors' }: ProcurementDash
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <VendorsView handleAction={handleAction} actionState={actionState} />
+            <VendorsView handleAction={handleAction} actionState={actionState} data={data} />
           </motion.div>
         )}
         {activeTab === 'contracts' && (
@@ -77,7 +136,7 @@ export function ProcurementDashboard({ initialTab = 'vendors' }: ProcurementDash
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <ContractsView handleAction={handleAction} actionState={actionState} />
+            <ContractsView handleAction={handleAction} actionState={actionState} data={data} />
           </motion.div>
         )}
         {activeTab === 'supply-chains' && (
@@ -89,7 +148,7 @@ export function ProcurementDashboard({ initialTab = 'vendors' }: ProcurementDash
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <SupplyChainsView handleAction={handleAction} actionState={actionState} />
+            <SupplyChainsView handleAction={handleAction} actionState={actionState} data={data} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -97,19 +156,13 @@ export function ProcurementDashboard({ initialTab = 'vendors' }: ProcurementDash
   );
 }
 
-function VendorsView({ handleAction, actionState }: any) {
+function VendorsView({ handleAction, actionState, data }: any) {
   const [activeFilter, setActiveFilter] = useState('All');
   const [search, setSearch] = useState('');
 
-  const VENDORS = [
-    { name: "Mercy General Hospital", id: "VND-8491A", category: "Hospitals", tier: "Tier 1", status: "Active", reliability: 98.4, distance: "12 km", capacity: "450 Beds" },
-    { name: "Agri-Corp Provisions", id: "VND-4102B", category: "Food Suppliers", tier: "Tier 2", status: "Review", reliability: 82.1, distance: "85 km", capacity: "12 Tons/Day" },
-    { name: "Global Logistics Partners", id: "VND-1100X", category: "Logistics Partners", tier: "Tier 1", status: "Active", reliability: 99.9, distance: "Global", capacity: "120 Vehicles" },
-    { name: "SafeHaven Shelters", id: "VND-9921E", category: "Shelter Providers", tier: "Tier 1", status: "Active", reliability: 94.5, distance: "4 km", capacity: "2,500 Units" },
-    { name: "Med-Tech Emergency Equipment", id: "VND-3340M", category: "Emergency Equipment", tier: "Tier 3", status: "Restricted", reliability: 68.2, distance: "250 km", capacity: "Limited Stock" }
-  ];
+  const VENDORS = data?.vendors || [];
 
-  const filtered = VENDORS.filter(v => 
+  const filtered = VENDORS.filter((v: any) => 
     (activeFilter === 'All' || v.category === activeFilter) && 
     (v.name.toLowerCase().includes(search.toLowerCase()) || v.category.toLowerCase().includes(search.toLowerCase()))
   );
@@ -137,7 +190,7 @@ function VendorsView({ handleAction, actionState }: any) {
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-none">
-          {filtered.map(v => (
+          {filtered.map((v: any) => (
             <VendorRow 
               key={v.id}
               name={v.name} 
@@ -238,7 +291,7 @@ function VendorRow({ name, id, category, tier, status, reliability, distance, ca
   )
 }
 
-function ContractsView({ handleAction, actionState }: any) {
+function ContractsView({ handleAction, actionState, data }: any) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       
@@ -281,11 +334,9 @@ function ContractsView({ handleAction, actionState }: any) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              <ContractTableRow id="EMG-2026-X1" entity="Mercy General Hospital" type="Emergency Contract" date="10 mins ago" status="Pending Signature" />
-              <ContractTableRow id="RFQ-2026-A2" entity="Global Logistics Partners" type="RFQ" date="1 hr ago" status="Dispatched" />
-              <ContractTableRow id="PRQ-2026-X8" entity="Agri-Corp Provisions" type="Procurement Req" date="4 hrs ago" status="Approved" />
-              <ContractTableRow id="EVA-2026-B4" entity="SafeHaven Shelters" type="Vendor Eval" date="Yesterday" status="Completed" />
-              <ContractTableRow id="EMG-2026-C1" entity="Oceana Desalination" type="Emergency Contract" date="Yesterday" status="Active" />
+              {(data?.contracts || []).map((c: any) => (
+                <ContractTableRow key={c.id} id={c.id} entity={c.entity} type={c.type} date={c.date} status={c.status} />
+              ))}
             </tbody>
           </table>
         </div>
@@ -349,7 +400,7 @@ function ContractTableRow({ id, entity, type, date, status }: any) {
   )
 }
 
-function SupplyChainsView({ handleAction, actionState }: any) {
+function SupplyChainsView({ handleAction, actionState, data }: any) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
@@ -370,42 +421,30 @@ function SupplyChainsView({ handleAction, actionState }: any) {
         {/* Abstract Map Nodes */}
         <div className="absolute inset-0 top-20 flex items-center justify-center opacity-80 z-0">
           <div className="relative w-full h-[300px]">
-             
-             {/* Factory node */}
-             <div className="absolute left-[10%] top-[20%] flex flex-col items-center gap-2">
-                <div className="w-10 h-10 border border-emerald-500/50 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 z-10">
-                  <Factory size={16} />
-                </div>
-                <span className="text-[9px] font-mono whitespace-nowrap text-emerald-400 bg-black/60 px-1 rounded shadow-md border border-emerald-500/30">Stable: Node A</span>
-             </div>
-
-             {/* Distribution node */}
-             <div className="absolute left-[45%] top-[50%] flex flex-col items-center gap-2">
-                <div className="w-12 h-12 border border-pink-500/50 bg-pink-500/10 rounded-full flex items-center justify-center text-pink-400 z-10">
-                  <Archive size={20} />
-                </div>
-                <span className="text-[9px] font-mono whitespace-nowrap text-pink-400 bg-black/60 px-1 rounded shadow-md border border-pink-500/30">Processing</span>
-             </div>
-
-             {/* Endpoint nodes */}
-             <div className="absolute right-[15%] top-[30%] flex flex-col items-center gap-2">
-                <div className="w-8 h-8 border border-slate-600 bg-slate-800 rounded-full flex items-center justify-center text-gray-400 z-10">
-                  <Building size={14} />
-                </div>
-             </div>
-             
-             <div className="absolute right-[10%] bottom-[20%] flex flex-col items-center gap-2">
-                <div className="w-8 h-8 border border-rose-500/50 bg-rose-500/10 rounded-full flex items-center justify-center text-rose-400 z-10 animate-pulse">
-                  <ShieldAlert size={14} />
-                </div>
-                <span className="text-[9px] font-mono whitespace-nowrap text-rose-400 bg-black/60 px-1 rounded shadow-md border border-rose-500/30">Disrupted</span>
-             </div>
+             {(data?.mapNodes || []).map((n: any) => {
+               const Icon = n.type.toLowerCase() === 'factory' ? Factory : n.type.toLowerCase() === 'distribution' ? Archive : n.type.toLowerCase() === 'endpoint' ? Building : ShieldAlert;
+               const borderColor = n.type.toLowerCase() === 'factory' ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 
+                                   n.type.toLowerCase() === 'distribution' ? 'border-pink-500/50 bg-pink-500/10 text-pink-400' : 
+                                   n.type.toLowerCase() === 'disruption' ? 'border-rose-500/50 bg-rose-500/10 text-rose-400 animate-pulse' : 
+                                   'border-slate-600 bg-slate-800 text-gray-400';
+               const textColor = n.type.toLowerCase() === 'factory' ? 'text-emerald-400 border-emerald-500/30' : 
+                                 n.type.toLowerCase() === 'distribution' ? 'text-pink-400 border-pink-500/30' : 
+                                 n.type.toLowerCase() === 'disruption' ? 'text-rose-400 border-rose-500/30' : '';
+               return (
+                 <div key={n.id} className="absolute flex flex-col items-center gap-2" style={{ left: `${n.x}%`, top: `${n.y}%` }}>
+                    <div className={`w-10 h-10 border rounded-full flex items-center justify-center z-10 ${borderColor}`}>
+                      <Icon size={16} />
+                    </div>
+                    {n.statusText && <span className={`text-[9px] font-mono whitespace-nowrap bg-black/60 px-1 rounded shadow-md border ${textColor}`}>{n.statusText}</span>}
+                 </div>
+               );
+             })}
 
              {/* Connecting Flow lines */}
-             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                <path d="M 12% 25% Q 30% 25% 45% 50%" fill="none" stroke={PALETTE.emerald} strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
-                <path d="M 45% 50% Q 65% 50% 85% 33%" fill="none" stroke={PALETTE.blue} strokeWidth="2" strokeDasharray="4 4" />
-                <path d="M 45% 50% Q 60% 70% 90% 77%" fill="none" stroke={PALETTE.rose} strokeWidth="2" strokeDasharray="2 2" className="opacity-80 drop-shadow-[0_0_5px_rgba(244,63,94,0.5)]" />
+             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+               {(data?.mapPaths || []).map((p: any, i: number) => (
+                 <path key={i} d={p.path} fill="none" stroke={p.stroke} strokeWidth="0.5" strokeDasharray={p.animated ? "2 2" : "none"} className={p.animated ? "animate-pulse" : ""} />
+               ))}
              </svg>
           </div>
         </div>
@@ -418,20 +457,20 @@ function SupplyChainsView({ handleAction, actionState }: any) {
            </h4>
            
            <div className="space-y-4">
-              <RiskMonitorItem label="Supplier Stability" val="92%" trend="stable" color="emerald" detail="Most Tier 1 vendors operating at optimal capacity." />
-              <RiskMonitorItem label="Logistics Disruption" val="Elevated" trend="rising" color="rose" detail="Route blockage at Node E. Re-routing cargo vectors." />
-              <RiskMonitorItem label="Price Volatility" val="Moderate" trend="falling" color="amber" detail="Raw material index fluctuating within acceptable margins." />
+              {(data?.riskVectors || []).map((r: any, i: number) => (
+                <RiskMonitorItem key={i} label={r.label} val={r.val} trend={r.trend} color={r.color} detail={r.detail} />
+              ))}
            </div>
         </div>
         
         <div className="flex gap-4">
            <div className="flex-1 bg-[#030712] border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
              <span className="text-[10px] text-gray-500 font-mono uppercase font-semibold">Global Threat Level</span>
-             <div className="text-2xl font-bold text-amber-500 mt-2 tracking-tight">DEFCON 3</div>
+             <div className="text-2xl font-bold text-amber-500 mt-2 tracking-tight">DEFCON {data?.defcon || '3'}</div>
            </div>
            <div className="flex-1 bg-[#030712] border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
              <span className="text-[10px] text-gray-500 font-mono uppercase font-semibold">Active Scan Agents</span>
-             <div className="text-2xl font-bold text-white mt-2 tracking-tight">24,105<span className="text-sm font-normal text-emerald-500 ml-2">Online</span></div>
+             <div className="text-2xl font-bold text-white mt-2 tracking-tight">{data?.activeScanAgents?.toLocaleString() || '0'}<span className="text-sm font-normal text-emerald-500 ml-2">Online</span></div>
            </div>
         </div>
       </div>
