@@ -154,23 +154,23 @@ class SovereignMindServiceStub:
                 request_serializer=services__pb2.DeleteComplianceRecordRequest.SerializeToString,
                 response_deserializer=services__pb2.DeleteComplianceRecordResponse.FromString,
                 _registered_method=True)
-        self.GenerateRiskRadar = channel.unary_unary(
-                '/sovereignmind.SovereignMindService/GenerateRiskRadar',
+        self.GenerateRiskRadarData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateRiskRadarData',
                 request_serializer=services__pb2.EmptyRequest.SerializeToString,
                 response_deserializer=services__pb2.RiskRadarResponse.FromString,
                 _registered_method=True)
-        self.GenerateForecast = channel.unary_unary(
-                '/sovereignmind.SovereignMindService/GenerateForecast',
+        self.GenerateForecastData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateForecastData',
                 request_serializer=services__pb2.EmptyRequest.SerializeToString,
                 response_deserializer=services__pb2.ForecastResponse.FromString,
                 _registered_method=True)
-        self.GenerateBlackSwan = channel.unary_unary(
-                '/sovereignmind.SovereignMindService/GenerateBlackSwan',
+        self.GenerateBlackSwanData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateBlackSwanData',
                 request_serializer=services__pb2.EmptyRequest.SerializeToString,
                 response_deserializer=services__pb2.BlackSwanResponse.FromString,
                 _registered_method=True)
-        self.GetNationModel = channel.unary_unary(
-                '/sovereignmind.SovereignMindService/GetNationModel',
+        self.GetNationModelData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetNationModelData',
                 request_serializer=services__pb2.EmptyRequest.SerializeToString,
                 response_deserializer=services__pb2.NationModelData.FromString,
                 _registered_method=True)
@@ -179,13 +179,13 @@ class SovereignMindServiceStub:
                 request_serializer=services__pb2.ShockScenarioRequest.SerializeToString,
                 response_deserializer=services__pb2.NationModelData.FromString,
                 _registered_method=True)
-        self.GenerateDependencies = channel.unary_unary(
-                '/sovereignmind.SovereignMindService/GenerateDependencies',
+        self.GenerateDependenciesData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateDependenciesData',
                 request_serializer=services__pb2.EmptyRequest.SerializeToString,
                 response_deserializer=services__pb2.DependenciesResponse.FromString,
                 _registered_method=True)
-        self.GetInfrastructure = channel.unary_unary(
-                '/sovereignmind.SovereignMindService/GetInfrastructure',
+        self.GetInfrastructureData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetInfrastructureData',
                 request_serializer=services__pb2.EmptyRequest.SerializeToString,
                 response_deserializer=services__pb2.InfrastructureData.FromString,
                 _registered_method=True)
@@ -463,28 +463,28 @@ class SovereignMindServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GenerateRiskRadar(self, request, context):
+    def GenerateRiskRadarData(self, request, context):
         """Foresight Engine: Risk Radar
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GenerateForecast(self, request, context):
+    def GenerateForecastData(self, request, context):
         """Foresight Engine: Forecasting
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GenerateBlackSwan(self, request, context):
+    def GenerateBlackSwanData(self, request, context):
         """Foresight Engine: Black Swan
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetNationModel(self, request, context):
+    def GetNationModelData(self, request, context):
         """Digital Twin: Nation Model
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -497,14 +497,14 @@ class SovereignMindServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GenerateDependencies(self, request, context):
+    def GenerateDependenciesData(self, request, context):
         """Digital Twin: Dependencies
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetInfrastructure(self, request, context):
+    def GetInfrastructureData(self, request, context):
         """Digital Twin: Infrastructure
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -783,23 +783,23 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
                     request_deserializer=services__pb2.DeleteComplianceRecordRequest.FromString,
                     response_serializer=services__pb2.DeleteComplianceRecordResponse.SerializeToString,
             ),
-            'GenerateRiskRadar': grpc.unary_unary_rpc_method_handler(
-                    servicer.GenerateRiskRadar,
+            'GenerateRiskRadarData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateRiskRadarData,
                     request_deserializer=services__pb2.EmptyRequest.FromString,
                     response_serializer=services__pb2.RiskRadarResponse.SerializeToString,
             ),
-            'GenerateForecast': grpc.unary_unary_rpc_method_handler(
-                    servicer.GenerateForecast,
+            'GenerateForecastData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateForecastData,
                     request_deserializer=services__pb2.EmptyRequest.FromString,
                     response_serializer=services__pb2.ForecastResponse.SerializeToString,
             ),
-            'GenerateBlackSwan': grpc.unary_unary_rpc_method_handler(
-                    servicer.GenerateBlackSwan,
+            'GenerateBlackSwanData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateBlackSwanData,
                     request_deserializer=services__pb2.EmptyRequest.FromString,
                     response_serializer=services__pb2.BlackSwanResponse.SerializeToString,
             ),
-            'GetNationModel': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetNationModel,
+            'GetNationModelData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetNationModelData,
                     request_deserializer=services__pb2.EmptyRequest.FromString,
                     response_serializer=services__pb2.NationModelData.SerializeToString,
             ),
@@ -808,13 +808,13 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
                     request_deserializer=services__pb2.ShockScenarioRequest.FromString,
                     response_serializer=services__pb2.NationModelData.SerializeToString,
             ),
-            'GenerateDependencies': grpc.unary_unary_rpc_method_handler(
-                    servicer.GenerateDependencies,
+            'GenerateDependenciesData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateDependenciesData,
                     request_deserializer=services__pb2.EmptyRequest.FromString,
                     response_serializer=services__pb2.DependenciesResponse.SerializeToString,
             ),
-            'GetInfrastructure': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetInfrastructure,
+            'GetInfrastructureData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetInfrastructureData,
                     request_deserializer=services__pb2.EmptyRequest.FromString,
                     response_serializer=services__pb2.InfrastructureData.SerializeToString,
             ),
@@ -1593,7 +1593,7 @@ class SovereignMindService:
             _registered_method=True)
 
     @staticmethod
-    def GenerateRiskRadar(request,
+    def GenerateRiskRadarData(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1606,7 +1606,7 @@ class SovereignMindService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/sovereignmind.SovereignMindService/GenerateRiskRadar',
+            '/sovereignmind.SovereignMindService/GenerateRiskRadarData',
             services__pb2.EmptyRequest.SerializeToString,
             services__pb2.RiskRadarResponse.FromString,
             options,
@@ -1620,7 +1620,7 @@ class SovereignMindService:
             _registered_method=True)
 
     @staticmethod
-    def GenerateForecast(request,
+    def GenerateForecastData(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1633,7 +1633,7 @@ class SovereignMindService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/sovereignmind.SovereignMindService/GenerateForecast',
+            '/sovereignmind.SovereignMindService/GenerateForecastData',
             services__pb2.EmptyRequest.SerializeToString,
             services__pb2.ForecastResponse.FromString,
             options,
@@ -1647,7 +1647,7 @@ class SovereignMindService:
             _registered_method=True)
 
     @staticmethod
-    def GenerateBlackSwan(request,
+    def GenerateBlackSwanData(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1660,7 +1660,7 @@ class SovereignMindService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/sovereignmind.SovereignMindService/GenerateBlackSwan',
+            '/sovereignmind.SovereignMindService/GenerateBlackSwanData',
             services__pb2.EmptyRequest.SerializeToString,
             services__pb2.BlackSwanResponse.FromString,
             options,
@@ -1674,7 +1674,7 @@ class SovereignMindService:
             _registered_method=True)
 
     @staticmethod
-    def GetNationModel(request,
+    def GetNationModelData(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1687,7 +1687,7 @@ class SovereignMindService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/sovereignmind.SovereignMindService/GetNationModel',
+            '/sovereignmind.SovereignMindService/GetNationModelData',
             services__pb2.EmptyRequest.SerializeToString,
             services__pb2.NationModelData.FromString,
             options,
@@ -1728,7 +1728,7 @@ class SovereignMindService:
             _registered_method=True)
 
     @staticmethod
-    def GenerateDependencies(request,
+    def GenerateDependenciesData(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1741,7 +1741,7 @@ class SovereignMindService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/sovereignmind.SovereignMindService/GenerateDependencies',
+            '/sovereignmind.SovereignMindService/GenerateDependenciesData',
             services__pb2.EmptyRequest.SerializeToString,
             services__pb2.DependenciesResponse.FromString,
             options,
@@ -1755,7 +1755,7 @@ class SovereignMindService:
             _registered_method=True)
 
     @staticmethod
-    def GetInfrastructure(request,
+    def GetInfrastructureData(request,
             target,
             options=(),
             channel_credentials=None,
@@ -1768,7 +1768,7 @@ class SovereignMindService:
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/sovereignmind.SovereignMindService/GetInfrastructure',
+            '/sovereignmind.SovereignMindService/GetInfrastructureData',
             services__pb2.EmptyRequest.SerializeToString,
             services__pb2.InfrastructureData.FromString,
             options,
