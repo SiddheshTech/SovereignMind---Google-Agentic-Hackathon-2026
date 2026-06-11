@@ -1,2 +1,8 @@
-datasets.zip
-gemma-keras-gemma_1.1_instruct_2b_en-v4/
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
