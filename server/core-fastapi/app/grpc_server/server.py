@@ -694,9 +694,16 @@ class SovereignMindServicer:
 
   async def SendCopilotMessage(self, request, context):
       from app.services.copilot_engine import copilot_engine
-      res = copilot_engine.process_prompt(request.prompt)
       import services_pb2
-      return services_pb2.SendCopilotMessageResponse(**res)
+      import uuid
+      from datetime import datetime
+      res = copilot_engine.generate_response(request.prompt)
+      return services_pb2.SendCopilotMessageResponse(
+          id=str(uuid.uuid4()),
+          role="assistant",
+          content=res,
+          timestamp=datetime.utcnow().isoformat()
+      )
 
   # =========================================================================
   # COLLABORATION DASHBOARD ENDPOINTS

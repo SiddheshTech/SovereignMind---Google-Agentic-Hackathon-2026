@@ -5,7 +5,7 @@ import warnings
 
 import services_pb2 as services__pb2
 
-GRPC_GENERATED_VERSION = '1.80.0'
+GRPC_GENERATED_VERSION = '1.81.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
@@ -25,7 +25,7 @@ if _version_not_supported:
     )
 
 
-class SovereignMindServiceStub(object):
+class SovereignMindServiceStub:
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -159,9 +159,154 @@ class SovereignMindServiceStub(object):
                 request_serializer=services__pb2.EmptyRequest.SerializeToString,
                 response_deserializer=services__pb2.RiskRadarResponse.FromString,
                 _registered_method=True)
+        self.GenerateForecast = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateForecast',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.ForecastResponse.FromString,
+                _registered_method=True)
+        self.GenerateBlackSwan = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateBlackSwan',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.BlackSwanResponse.FromString,
+                _registered_method=True)
+        self.GetNationModel = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetNationModel',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.NationModelData.FromString,
+                _registered_method=True)
+        self.ExecuteShockScenario = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/ExecuteShockScenario',
+                request_serializer=services__pb2.ShockScenarioRequest.SerializeToString,
+                response_deserializer=services__pb2.NationModelData.FromString,
+                _registered_method=True)
+        self.GenerateDependencies = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateDependencies',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.DependenciesResponse.FromString,
+                _registered_method=True)
+        self.GetInfrastructure = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetInfrastructure',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.InfrastructureData.FromString,
+                _registered_method=True)
+        self.SimulateInfrastructureUpdate = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SimulateInfrastructureUpdate',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.InfrastructureData.FromString,
+                _registered_method=True)
+        self.GetAnalyticsData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetAnalyticsData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.AnalyticsDashboardData.FromString,
+                _registered_method=True)
+        self.SimulateAnalyticsUpdate = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SimulateAnalyticsUpdate',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.AnalyticsDashboardData.FromString,
+                _registered_method=True)
+        self.GenerateSynthesisReport = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateSynthesisReport',
+                request_serializer=services__pb2.GenerateSynthesisRequest.SerializeToString,
+                response_deserializer=services__pb2.IntelligenceReport.FromString,
+                _registered_method=True)
+        self.GetCrisisData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetCrisisData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.CrisisDashboardData.FromString,
+                _registered_method=True)
+        self.SimulateCrisisUpdate = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SimulateCrisisUpdate',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.CrisisDashboardData.FromString,
+                _registered_method=True)
+        self.GeneratePolicyOptions = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GeneratePolicyOptions',
+                request_serializer=services__pb2.GeneratePolicyRequest.SerializeToString,
+                response_deserializer=services__pb2.CrisisPolicyResponse.FromString,
+                _registered_method=True)
+        self.GetProcurementData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetProcurementData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.ProcurementDashboardData.FromString,
+                _registered_method=True)
+        self.SimulateProcurementUpdate = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SimulateProcurementUpdate',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.ProcurementDashboardData.FromString,
+                _registered_method=True)
+        self.GetIntelligenceGraphData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetIntelligenceGraphData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.IntelligenceGraphData.FromString,
+                _registered_method=True)
+        self.SimulateIntelligenceUpdate = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SimulateIntelligenceUpdate',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.IntelligenceGraphData.FromString,
+                _registered_method=True)
+        self.SendCopilotMessage = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SendCopilotMessage',
+                request_serializer=services__pb2.SendCopilotMessageRequest.SerializeToString,
+                response_deserializer=services__pb2.SendCopilotMessageResponse.FromString,
+                _registered_method=True)
+        self.GetCollaborationData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetCollaborationData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.CollaborationData.FromString,
+                _registered_method=True)
+        self.CreateCollaborationRoom = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/CreateCollaborationRoom',
+                request_serializer=services__pb2.CreateCollaborationRoomRequest.SerializeToString,
+                response_deserializer=services__pb2.CollaborationRoom.FromString,
+                _registered_method=True)
+        self.SendCollaborationMessage = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SendCollaborationMessage',
+                request_serializer=services__pb2.SendCollaborationMessageRequest.SerializeToString,
+                response_deserializer=services__pb2.CollaborationMessage.FromString,
+                _registered_method=True)
+        self.GetCommandCenterData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetCommandCenterData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.CommandCenterDataProto.FromString,
+                _registered_method=True)
+        self.RefreshCommandCenterData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/RefreshCommandCenterData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.CommandCenterDataProto.FromString,
+                _registered_method=True)
+        self.GetExecutiveBriefingData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetExecutiveBriefingData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.ExecutiveBriefingDataProto.FromString,
+                _registered_method=True)
+        self.RefreshExecutiveBriefingData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/RefreshExecutiveBriefingData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.ExecutiveBriefingDataProto.FromString,
+                _registered_method=True)
+        self.GetMetricDetail = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetMetricDetail',
+                request_serializer=services__pb2.GetMetricDetailRequest.SerializeToString,
+                response_deserializer=services__pb2.MetricDetailDataProto.FromString,
+                _registered_method=True)
+        self.SimulateEmergencyPowers = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SimulateEmergencyPowers',
+                request_serializer=services__pb2.SimulateEmergencyPowersRequest.SerializeToString,
+                response_deserializer=services__pb2.EmergencyPowersResultProto.FromString,
+                _registered_method=True)
+        self.AnalyzeTreatyConstraints = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/AnalyzeTreatyConstraints',
+                request_serializer=services__pb2.AnalyzeTreatyConstraintsRequest.SerializeToString,
+                response_deserializer=services__pb2.TreatyConstraintResultProto.FromString,
+                _registered_method=True)
+        self.GetOperatorDashboardData = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetOperatorDashboardData',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.OperatorDashboardDataProto.FromString,
+                _registered_method=True)
 
 
-class SovereignMindServiceServicer(object):
+class SovereignMindServiceServicer:
     """Missing associated documentation comment in .proto file."""
 
     def GetSovereigntyGenome(self, request, context):
@@ -325,6 +470,196 @@ class SovereignMindServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GenerateForecast(self, request, context):
+        """Foresight Engine: Forecasting
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GenerateBlackSwan(self, request, context):
+        """Foresight Engine: Black Swan
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetNationModel(self, request, context):
+        """Digital Twin: Nation Model
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ExecuteShockScenario(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GenerateDependencies(self, request, context):
+        """Digital Twin: Dependencies
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetInfrastructure(self, request, context):
+        """Digital Twin: Infrastructure
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SimulateInfrastructureUpdate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetAnalyticsData(self, request, context):
+        """Analytics Dashboard
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SimulateAnalyticsUpdate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GenerateSynthesisReport(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetCrisisData(self, request, context):
+        """Crisis Dashboard
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SimulateCrisisUpdate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GeneratePolicyOptions(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetProcurementData(self, request, context):
+        """Procurement Dashboard
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SimulateProcurementUpdate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetIntelligenceGraphData(self, request, context):
+        """Intelligence Graph Dashboard
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SimulateIntelligenceUpdate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendCopilotMessage(self, request, context):
+        """AI Copilot
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetCollaborationData(self, request, context):
+        """Collaboration Dashboard
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CreateCollaborationRoom(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendCollaborationMessage(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetCommandCenterData(self, request, context):
+        """Command Center
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RefreshCommandCenterData(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetExecutiveBriefingData(self, request, context):
+        """Executive Briefing
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RefreshExecutiveBriefingData(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetMetricDetail(self, request, context):
+        """Metric Detail
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SimulateEmergencyPowers(self, request, context):
+        """Emergency Powers & Treaty Constraints
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def AnalyzeTreatyConstraints(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetOperatorDashboardData(self, request, context):
+        """Operator Dashboard
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SovereignMindServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -453,6 +788,151 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
                     request_deserializer=services__pb2.EmptyRequest.FromString,
                     response_serializer=services__pb2.RiskRadarResponse.SerializeToString,
             ),
+            'GenerateForecast': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateForecast,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.ForecastResponse.SerializeToString,
+            ),
+            'GenerateBlackSwan': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateBlackSwan,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.BlackSwanResponse.SerializeToString,
+            ),
+            'GetNationModel': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetNationModel,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.NationModelData.SerializeToString,
+            ),
+            'ExecuteShockScenario': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExecuteShockScenario,
+                    request_deserializer=services__pb2.ShockScenarioRequest.FromString,
+                    response_serializer=services__pb2.NationModelData.SerializeToString,
+            ),
+            'GenerateDependencies': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateDependencies,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.DependenciesResponse.SerializeToString,
+            ),
+            'GetInfrastructure': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetInfrastructure,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.InfrastructureData.SerializeToString,
+            ),
+            'SimulateInfrastructureUpdate': grpc.unary_unary_rpc_method_handler(
+                    servicer.SimulateInfrastructureUpdate,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.InfrastructureData.SerializeToString,
+            ),
+            'GetAnalyticsData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAnalyticsData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.AnalyticsDashboardData.SerializeToString,
+            ),
+            'SimulateAnalyticsUpdate': grpc.unary_unary_rpc_method_handler(
+                    servicer.SimulateAnalyticsUpdate,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.AnalyticsDashboardData.SerializeToString,
+            ),
+            'GenerateSynthesisReport': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateSynthesisReport,
+                    request_deserializer=services__pb2.GenerateSynthesisRequest.FromString,
+                    response_serializer=services__pb2.IntelligenceReport.SerializeToString,
+            ),
+            'GetCrisisData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetCrisisData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.CrisisDashboardData.SerializeToString,
+            ),
+            'SimulateCrisisUpdate': grpc.unary_unary_rpc_method_handler(
+                    servicer.SimulateCrisisUpdate,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.CrisisDashboardData.SerializeToString,
+            ),
+            'GeneratePolicyOptions': grpc.unary_unary_rpc_method_handler(
+                    servicer.GeneratePolicyOptions,
+                    request_deserializer=services__pb2.GeneratePolicyRequest.FromString,
+                    response_serializer=services__pb2.CrisisPolicyResponse.SerializeToString,
+            ),
+            'GetProcurementData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProcurementData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.ProcurementDashboardData.SerializeToString,
+            ),
+            'SimulateProcurementUpdate': grpc.unary_unary_rpc_method_handler(
+                    servicer.SimulateProcurementUpdate,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.ProcurementDashboardData.SerializeToString,
+            ),
+            'GetIntelligenceGraphData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetIntelligenceGraphData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.IntelligenceGraphData.SerializeToString,
+            ),
+            'SimulateIntelligenceUpdate': grpc.unary_unary_rpc_method_handler(
+                    servicer.SimulateIntelligenceUpdate,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.IntelligenceGraphData.SerializeToString,
+            ),
+            'SendCopilotMessage': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendCopilotMessage,
+                    request_deserializer=services__pb2.SendCopilotMessageRequest.FromString,
+                    response_serializer=services__pb2.SendCopilotMessageResponse.SerializeToString,
+            ),
+            'GetCollaborationData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetCollaborationData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.CollaborationData.SerializeToString,
+            ),
+            'CreateCollaborationRoom': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateCollaborationRoom,
+                    request_deserializer=services__pb2.CreateCollaborationRoomRequest.FromString,
+                    response_serializer=services__pb2.CollaborationRoom.SerializeToString,
+            ),
+            'SendCollaborationMessage': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendCollaborationMessage,
+                    request_deserializer=services__pb2.SendCollaborationMessageRequest.FromString,
+                    response_serializer=services__pb2.CollaborationMessage.SerializeToString,
+            ),
+            'GetCommandCenterData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetCommandCenterData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.CommandCenterDataProto.SerializeToString,
+            ),
+            'RefreshCommandCenterData': grpc.unary_unary_rpc_method_handler(
+                    servicer.RefreshCommandCenterData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.CommandCenterDataProto.SerializeToString,
+            ),
+            'GetExecutiveBriefingData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetExecutiveBriefingData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.ExecutiveBriefingDataProto.SerializeToString,
+            ),
+            'RefreshExecutiveBriefingData': grpc.unary_unary_rpc_method_handler(
+                    servicer.RefreshExecutiveBriefingData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.ExecutiveBriefingDataProto.SerializeToString,
+            ),
+            'GetMetricDetail': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMetricDetail,
+                    request_deserializer=services__pb2.GetMetricDetailRequest.FromString,
+                    response_serializer=services__pb2.MetricDetailDataProto.SerializeToString,
+            ),
+            'SimulateEmergencyPowers': grpc.unary_unary_rpc_method_handler(
+                    servicer.SimulateEmergencyPowers,
+                    request_deserializer=services__pb2.SimulateEmergencyPowersRequest.FromString,
+                    response_serializer=services__pb2.EmergencyPowersResultProto.SerializeToString,
+            ),
+            'AnalyzeTreatyConstraints': grpc.unary_unary_rpc_method_handler(
+                    servicer.AnalyzeTreatyConstraints,
+                    request_deserializer=services__pb2.AnalyzeTreatyConstraintsRequest.FromString,
+                    response_serializer=services__pb2.TreatyConstraintResultProto.SerializeToString,
+            ),
+            'GetOperatorDashboardData': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetOperatorDashboardData,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.OperatorDashboardDataProto.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'sovereignmind.SovereignMindService', rpc_method_handlers)
@@ -461,7 +941,7 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
 
 
  # This class is part of an EXPERIMENTAL API.
-class SovereignMindService(object):
+class SovereignMindService:
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
@@ -1129,6 +1609,789 @@ class SovereignMindService(object):
             '/sovereignmind.SovereignMindService/GenerateRiskRadar',
             services__pb2.EmptyRequest.SerializeToString,
             services__pb2.RiskRadarResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateForecast(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GenerateForecast',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.ForecastResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateBlackSwan(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GenerateBlackSwan',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.BlackSwanResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetNationModel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetNationModel',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.NationModelData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ExecuteShockScenario(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/ExecuteShockScenario',
+            services__pb2.ShockScenarioRequest.SerializeToString,
+            services__pb2.NationModelData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateDependencies(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GenerateDependencies',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.DependenciesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetInfrastructure(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetInfrastructure',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.InfrastructureData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SimulateInfrastructureUpdate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SimulateInfrastructureUpdate',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.InfrastructureData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetAnalyticsData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetAnalyticsData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.AnalyticsDashboardData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SimulateAnalyticsUpdate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SimulateAnalyticsUpdate',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.AnalyticsDashboardData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateSynthesisReport(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GenerateSynthesisReport',
+            services__pb2.GenerateSynthesisRequest.SerializeToString,
+            services__pb2.IntelligenceReport.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetCrisisData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetCrisisData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.CrisisDashboardData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SimulateCrisisUpdate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SimulateCrisisUpdate',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.CrisisDashboardData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GeneratePolicyOptions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GeneratePolicyOptions',
+            services__pb2.GeneratePolicyRequest.SerializeToString,
+            services__pb2.CrisisPolicyResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetProcurementData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetProcurementData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.ProcurementDashboardData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SimulateProcurementUpdate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SimulateProcurementUpdate',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.ProcurementDashboardData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetIntelligenceGraphData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetIntelligenceGraphData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.IntelligenceGraphData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SimulateIntelligenceUpdate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SimulateIntelligenceUpdate',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.IntelligenceGraphData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendCopilotMessage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SendCopilotMessage',
+            services__pb2.SendCopilotMessageRequest.SerializeToString,
+            services__pb2.SendCopilotMessageResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetCollaborationData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetCollaborationData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.CollaborationData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreateCollaborationRoom(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/CreateCollaborationRoom',
+            services__pb2.CreateCollaborationRoomRequest.SerializeToString,
+            services__pb2.CollaborationRoom.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SendCollaborationMessage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SendCollaborationMessage',
+            services__pb2.SendCollaborationMessageRequest.SerializeToString,
+            services__pb2.CollaborationMessage.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetCommandCenterData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetCommandCenterData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.CommandCenterDataProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RefreshCommandCenterData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/RefreshCommandCenterData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.CommandCenterDataProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetExecutiveBriefingData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetExecutiveBriefingData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.ExecutiveBriefingDataProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RefreshExecutiveBriefingData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/RefreshExecutiveBriefingData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.ExecutiveBriefingDataProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetMetricDetail(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetMetricDetail',
+            services__pb2.GetMetricDetailRequest.SerializeToString,
+            services__pb2.MetricDetailDataProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SimulateEmergencyPowers(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SimulateEmergencyPowers',
+            services__pb2.SimulateEmergencyPowersRequest.SerializeToString,
+            services__pb2.EmergencyPowersResultProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def AnalyzeTreatyConstraints(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/AnalyzeTreatyConstraints',
+            services__pb2.AnalyzeTreatyConstraintsRequest.SerializeToString,
+            services__pb2.TreatyConstraintResultProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetOperatorDashboardData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetOperatorDashboardData',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.OperatorDashboardDataProto.FromString,
             options,
             channel_credentials,
             insecure,

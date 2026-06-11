@@ -52,23 +52,23 @@ service SovereignMindService {
   rpc DeleteComplianceRecord(DeleteComplianceRecordRequest) returns (DeleteComplianceRecordResponse);
 
   // Foresight Engine: Risk Radar
-  rpc GenerateRiskRadar(EmptyRequest) returns (RiskRadarResponse);
+  rpc GenerateRiskRadarData(EmptyRequest) returns (RiskRadarResponse);
 
   // Foresight Engine: Forecasting
-  rpc GenerateForecast(EmptyRequest) returns (ForecastResponse);
+  rpc GenerateForecastData(EmptyRequest) returns (ForecastResponse);
 
   // Foresight Engine: Black Swan
-  rpc GenerateBlackSwan(EmptyRequest) returns (BlackSwanResponse);
+  rpc GenerateBlackSwanData(EmptyRequest) returns (BlackSwanResponse);
 
   // Digital Twin: Nation Model
-  rpc GetNationModel(EmptyRequest) returns (NationModelData);
+  rpc GetNationModelData(EmptyRequest) returns (NationModelData);
   rpc ExecuteShockScenario(ShockScenarioRequest) returns (NationModelData);
 
   // Digital Twin: Dependencies
-  rpc GenerateDependencies(EmptyRequest) returns (DependenciesResponse);
+  rpc GenerateDependenciesData(EmptyRequest) returns (DependenciesResponse);
 
   // Digital Twin: Infrastructure
-  rpc GetInfrastructure(EmptyRequest) returns (InfrastructureData);
+  rpc GetInfrastructureData(EmptyRequest) returns (InfrastructureData);
   rpc SimulateInfrastructureUpdate(EmptyRequest) returns (InfrastructureData);
 
   // Analytics Dashboard
@@ -920,9 +920,6 @@ message SendCopilotMessageRequest {
   string prompt = 1;
 }
 
-message SendCopilotMessageResponse {
-  string content = 1;
-}
 
 // ── COMMAND CENTER ─────────────────────────────────────────────────────────────
 
