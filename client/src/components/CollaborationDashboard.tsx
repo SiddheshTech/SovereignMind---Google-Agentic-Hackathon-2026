@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Users, FileText, Video, MessageSquare, Plus, Search, Shield, Pin, ExternalLink, Calendar, CheckCircle2, X, Download, Share2, Link, Mic, MicOff, Hand, Send, LayoutList, History, CornerDownLeft, Clock, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { io } from 'socket.io-client';
 
 const fetchGraphQL = async (query: string, variables = {}) => {
   const response = await fetch('http://localhost:4000/graphql', {
@@ -97,27 +96,34 @@ export function CollaborationDashboard() {
 
   // Real-time updates via WebSocket
   useEffect(() => {
-    const socket = io('http://localhost:4000/ws/collaboration');
+    const socket = new WebSocket('ws://localhost:4000/ws/collaboration');
 
-    socket.on('COLLABORATION_ROOM_CREATED', (newRoom: any) => {
-      setRooms(prev => [newRoom, ...prev]);
-      addNotification(`New room created: ${newRoom.name}`);
-    });
-
-    socket.on('COLLABORATION_MESSAGE_SENT', (msg: any) => {
-      setChatMessages(prev => {
-        const updated = { ...prev };
-        if (!updated[msg.roomId]) updated[msg.roomId] = [];
-        updated[msg.roomId] = [...updated[msg.roomId], msg];
-        return updated;
-      });
-      
-      if (msg.sender !== 'You') {
-         addNotification(`New message from ${msg.sender}`, msg.roomId);
+    socket.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'COLLABORATION_ROOM_CREATED') {
+          const newRoom = payload.data;
+          setRooms(prev => [newRoom, ...prev]);
+          addNotification(`New room created: ${newRoom.name}`);
+        } else if (payload.type === 'COLLABORATION_MESSAGE_SENT') {
+          const msg = payload.data;
+          setChatMessages(prev => {
+            const updated = { ...prev };
+            if (!updated[msg.roomId]) updated[msg.roomId] = [];
+            updated[msg.roomId] = [...updated[msg.roomId], msg];
+            return updated;
+          });
+          
+          if (msg.sender !== 'You') {
+             addNotification(`New message from ${msg.sender}`, msg.roomId);
+          }
+        }
+      } catch (err) {
+        console.error('WS parse error:', err);
       }
-    });
+    };
 
-    return () => { socket.disconnect(); };
+    return () => { socket.close(); };
   }, []);
 
   useEffect(() => {
