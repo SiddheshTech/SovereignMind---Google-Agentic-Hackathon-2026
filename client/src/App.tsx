@@ -865,7 +865,7 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {!loggedInUser && <Footer onNavigate={setActiveTab} />}
+      {!loggedInUser && <Footer onNavigate={(tab: any) => setActiveTab(tab)} />}
 
     </main>
   </>

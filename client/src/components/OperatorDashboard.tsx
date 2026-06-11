@@ -266,7 +266,7 @@ export function OperatorDashboard({ user, activeItem = 'dashboard', onNavigate }
                  className="flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-mono font-semibold border transition-all cursor-pointer"
                  style={{ 
                    backgroundColor: `${PALETTE.purple}15`, 
-                   textColor: '#ece0ff',
+                   color: '#ece0ff',
                    borderColor: `${PALETTE.purple}40`
                  }}
                >

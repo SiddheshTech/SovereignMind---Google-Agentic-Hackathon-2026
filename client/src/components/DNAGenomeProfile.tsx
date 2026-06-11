@@ -715,7 +715,7 @@ function DNAPairViewerSection({ currentCountryName }: { currentCountryName: stri
               {/* Dynamic simulation tabs for fracture & recovery */}
               <div className="md:col-span-6 space-y-4 bg-slate-950 p-5 rounded-2xl border border-white/5 relative">
                  <div className="flex bg-black/60 rounded-xl p-1 border border-white/5">
-                   {['current', 'tension', 'recovery'].map(tm => (
+                   {['current', 'tension', 'reconstruction'].map(tm => (
                       <button
                         key={tm}
                         onClick={() => setSocialTimeFrame(tm as any)}
@@ -744,7 +744,7 @@ function DNAPairViewerSection({ currentCountryName }: { currentCountryName: stri
                    </div>
                  )}
 
-                 {socialTimeFrame === 'recovery' && (
+                 {socialTimeFrame === 'reconstruction' && (
                    <div className="space-y-2 pt-2">
                       <span className="text-[10px] uppercase font-mono text-[#00B8DB] block font-bold">Recovery potential estimation metrics</span>
                       <p className="text-xs text-gray-300 leading-relaxed">

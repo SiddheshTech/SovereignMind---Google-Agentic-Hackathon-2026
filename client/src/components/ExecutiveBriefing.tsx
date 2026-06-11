@@ -387,7 +387,7 @@ export function ExecutiveBriefing() {
 function StatCard({ title, value, change, changeDesc, type, accent }: any) {
   return (
     <div className="bg-[#030712] border rounded-2xl p-5 relative overflow-hidden group hover:border-white/20 transition-colors" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
-       <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br opacity-20 rounded-bl-3xl" style={{ from: accent, to: 'transparent' }} />
+       <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br opacity-20 rounded-bl-3xl" style={{ backgroundImage: `linear-gradient(to bottom right, ${accent}, transparent)` }} />
        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-widest">{title}</h4>
        <div className="text-3xl font-bold text-white tracking-tight mt-3 transition-all duration-500">{value}</div>
        <div className="flex items-center gap-2 mt-3">

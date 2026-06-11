@@ -647,7 +647,7 @@ function ForecastMetricCard({ title, val, status, color }: { title: string, val:
   );
 }
 
-function BlackSwanView() {
+function BlackSwanView({ handleAction }: { handleAction?: any }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
