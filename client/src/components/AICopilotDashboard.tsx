@@ -11,6 +11,8 @@ export function AICopilotDashboard() {
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [showModelModal, setShowModelModal] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState<string | null>(null);
+  const [isTraining, setIsTraining] = useState(false);
+  const [trainingResult, setTrainingResult] = useState<any>(null);
 
   const sessionId = "session-12345"; // Static session for MVP
 
@@ -99,6 +101,36 @@ export function AICopilotDashboard() {
       fetchSession(); // to get the initial message back
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const triggerTraining = async () => {
+    setIsTraining(true);
+    setTrainingResult(null);
+    try {
+      const mutation = `
+        mutation {
+          triggerModelTraining {
+            status
+            accuracy
+            weights_path
+            message
+          }
+        }
+      `;
+      const res = await fetch('http://localhost:4000/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: mutation })
+      });
+      const json = await res.json();
+      if (json.data?.triggerModelTraining) {
+        setTrainingResult(json.data.triggerModelTraining);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsTraining(false);
     }
   };
 
@@ -308,12 +340,32 @@ export function AICopilotDashboard() {
                       <div className="text-[10px] text-emerald-400 font-mono">🟢 Connected & Validated</div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-white rounded transition cursor-pointer">Test</button>
+                      <button 
+                        onClick={() => model === 'Crisis Prediction Transformer' ? triggerTraining() : null}
+                        disabled={isTraining && model === 'Crisis Prediction Transformer'}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-white rounded transition cursor-pointer disabled:opacity-50"
+                      >
+                        {isTraining && model === 'Crisis Prediction Transformer' ? 'Training...' : 'Test'}
+                      </button>
                       <button className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-xs text-rose-400 rounded transition cursor-pointer">Remove</button>
                     </div>
                   </div>
                 ))}
               </div>
+              
+              {/* Training Results Box */}
+              {trainingResult && (
+                <div className="mb-6 p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                  <h4 className="text-sm font-bold text-white mb-2">Deep Learning Engine Activated</h4>
+                  <div className="text-xs text-gray-300 space-y-1">
+                    <div><span className="text-purple-400 font-mono">Status:</span> {trainingResult.status}</div>
+                    <div><span className="text-purple-400 font-mono">Calibrated Accuracy:</span> {(trainingResult.accuracy * 100).toFixed(1)}%</div>
+                    <div><span className="text-purple-400 font-mono">Message:</span> {trainingResult.message}</div>
+                    <div className="pt-2 text-[9px] text-gray-500 font-mono break-all">{trainingResult.weights_path}</div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4 border-t border-slate-800">
                 <button className="px-4 py-2 bg-pink-600 text-white rounded-xl text-xs font-bold hover:bg-pink-500 transition shadow-lg shadow-pink-500/20 w-full cursor-pointer">Add Integration</button>
                 <button onClick={() => setShowModelModal(false)} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 transition w-full cursor-pointer">Save Config</button>

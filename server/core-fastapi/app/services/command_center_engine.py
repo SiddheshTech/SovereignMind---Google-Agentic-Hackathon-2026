@@ -1,9 +1,11 @@
 import random
+import threading
+import time
 
 class CommandCenterEngine:
-    def get_data(self):
-        return {
-            "stabilityScore": 72 + random.randint(-5, 5),
+    def __init__(self):
+        self.state = {
+            "stabilityScore": 72,
             "stabilityLabel": "Stable",
             "trend30d": "↑ +2.1%",
             "activeThreats": 17,
@@ -61,5 +63,55 @@ class CommandCenterEngine:
                 {"id": "cn", "x": "80%", "y": "38%", "color": "bg-purple-400", "pulse": False, "stability": "82/100", "resilience": "80/100", "activeRisk": "Supply Chain"}
             ]
         }
+        self.lock = threading.Lock()
+        self.running = True
+        self.thread = threading.Thread(target=self._simulation_loop, daemon=True)
+        self.thread.start()
+
+    def _simulation_loop(self):
+        while self.running:
+            time.sleep(2.0)
+            with self.lock:
+                # Randomly mutate the state naturally
+                
+                # Mutate stability and threats slightly
+                self.state["stabilityScore"] = max(0, min(100, self.state["stabilityScore"] + random.randint(-2, 2)))
+                self.state["activeThreats"] = max(0, self.state["activeThreats"] + random.randint(-1, 1))
+                
+                if self.state["stabilityScore"] > 80:
+                    self.state["stabilityLabel"] = "Highly Stable"
+                elif self.state["stabilityScore"] > 50:
+                    self.state["stabilityLabel"] = "Stable"
+                elif self.state["stabilityScore"] > 30:
+                    self.state["stabilityLabel"] = "Volatile"
+                else:
+                    self.state["stabilityLabel"] = "Critical"
+
+                # Mutate metrics
+                for metric in self.state["metrics"]:
+                    current_score = int(metric["score"])
+                    # Small drift
+                    drift = random.randint(-3, 3)
+                    new_score = max(0, min(100, current_score + drift))
+                    metric["score"] = str(new_score)
+
+                    if metric["id"] == "crisis":
+                        metric["status"] = "Elevated" if new_score > 50 else "Nominal"
+                        metric["color"] = "#FF6900" if new_score > 50 else "#10B981"
+                    elif metric["id"] == "stability":
+                        metric["score"] = str(self.state["stabilityScore"])
+                    else:
+                        metric["status"] = "Warning" if new_score < 40 else "Nominal"
+                        metric["color"] = "#FF6900" if new_score < 40 else "#00B8DB"
+
+    def get_data(self):
+        with self.lock:
+            # Return a copy to be safe
+            import copy
+            return copy.deepcopy(self.state)
+
+    def stop(self):
+        self.running = False
 
 command_center_engine = CommandCenterEngine()
+

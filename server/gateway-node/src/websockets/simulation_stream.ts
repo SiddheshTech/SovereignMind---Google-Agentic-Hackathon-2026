@@ -17,7 +17,7 @@ export function initWebSocketServer(server: Server) {
       '/ws/procurement', '/ws/intelligence', '/ws/risk-radar', '/ws/forecasting',
       '/ws/black-swan', '/ws/nation-model', '/ws/dependencies', '/ws/infrastructure',
       '/ws/analytics', '/ws/crisis', '/ws/collaboration', '/ws/command-center',
-      '/ws/executive-briefing'
+      '/ws/executive-briefing', '/ws/operator-dashboard'
     ];
     if (allowedPaths.includes(url)) {
       wss?.handleUpgrade(request, socket, head, (ws) => {

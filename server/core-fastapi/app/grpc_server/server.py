@@ -697,7 +697,7 @@ class SovereignMindServicer:
       import services_pb2
       import uuid
       from datetime import datetime
-      res = copilot_engine.generate_response(request.prompt)
+      res = await copilot_engine.generate_response(request.prompt)
       return services_pb2.SendCopilotMessageResponse(
           id=str(uuid.uuid4()),
           role="assistant",
@@ -805,6 +805,26 @@ class SovereignMindServicer:
           notifications=[services_pb2.NotificationProto(**n) for n in data["notifications"]],
           timeline=[services_pb2.ActivityTimelineEventProto(**t) for t in data["timeline"]]
       )
+
+  async def TriggerModelTraining(self, request, context):
+      from app.services.training_engine import model_training_engine
+      import services_pb2
+      
+      try:
+          result = await model_training_engine.train_stability_model(epochs=60)
+          return services_pb2.TrainingStatusResponse(
+              status="SUCCESS",
+              accuracy=result["accuracy"],
+              weights_path=result["weights_path"],
+              message="Deep Learning model successfully trained and weights saved."
+          )
+      except Exception as e:
+          return services_pb2.TrainingStatusResponse(
+              status="FAILED",
+              accuracy=0.0,
+              weights_path="",
+              message=f"Training failed: {str(e)}"
+          )
 
 async def serve_grpc():
 

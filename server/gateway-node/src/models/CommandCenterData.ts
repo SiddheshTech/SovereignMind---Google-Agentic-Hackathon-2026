@@ -31,7 +31,7 @@ const CommandCenterSnapshotSchema = new mongoose.Schema({
   timelineEvents: [{
     year: String,
     name: String,
-    type: String
+    type: { type: String }
   }],
   metrics: [{
     id: String,

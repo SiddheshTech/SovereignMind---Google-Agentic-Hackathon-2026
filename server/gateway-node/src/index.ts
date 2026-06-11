@@ -51,6 +51,23 @@ async function startGateway() {
     res.json({ status: 'OK', service: 'SovereignMind Gateway Node', database: 'MongoDB Connected' });
   });
 
+  // Start Real-Time Background Ticker for Command Center
+  const { getCommandCenterData } = require('./grpc/client');
+  const { CommandCenterSnapshot } = require('./models/CommandCenterData');
+  const { broadcast } = require('./websockets/simulation_stream');
+  
+  setInterval(async () => {
+    try {
+      const grpcRes = await getCommandCenterData();
+      // Save snapshot to MongoDB Atlas
+      await CommandCenterSnapshot.create(grpcRes);
+      // Broadcast to all clients connected to /ws/command-center
+      broadcast({ type: 'COMMAND_CENTER_DATA_UPDATED', data: grpcRes }, '/ws/command-center');
+    } catch (e) {
+      console.error('Command Center Ticker Error:', e);
+    }
+  }, 5000);
+
   httpServer.listen(PORT, () => {
     console.log(`🚀 SovereignMind API Gateway active at:`);
     console.log(`   - HTTP/GraphQL: http://localhost:${PORT}/graphql`);

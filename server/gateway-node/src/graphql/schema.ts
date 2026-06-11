@@ -663,6 +663,14 @@ export const typeDefs = `#graphql
     analyzeTreatyConstraints(proposal: String!): TreatyConstraintResult!
     refreshCommandCenterData: CommandCenterData!
     refreshExecutiveBriefingData: ExecutiveBriefingData!
+    triggerModelTraining: TrainingStatus!
+  }
+
+  type TrainingStatus {
+    status: String!
+    accuracy: Float!
+    weights_path: String!
+    message: String!
   }
 
   # ── PROCUREMENT DASHBOARD ───────────────────────────────────────────────────

@@ -52,7 +52,7 @@ export interface IIntelligenceData extends Document {
 const IntelligenceDataSchema = new Schema({
   nodes: [{
     id: String,
-    type: String,
+    type: { type: String },
     baseColor: String,
     connections: Number,
     x: Number,

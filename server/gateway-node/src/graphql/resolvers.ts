@@ -51,7 +51,8 @@ import {
   getMetricDetail as grpcGetMetricDetail,
   simulateEmergencyPowers as grpcSimulateEmergencyPowers,
   analyzeTreatyConstraints as grpcAnalyzeTreatyConstraints,
-  getOperatorDashboardData as grpcGetOperatorDashboardData
+  getOperatorDashboardData as grpcGetOperatorDashboardData,
+  triggerModelTraining as grpcTriggerModelTraining
 } from '../grpc/client';
 import { triggerSandboxStream, broadcast, triggerDetailedSimStream } from '../websockets/simulation_stream';
 import { AuthorityProposal } from '../models/AuthorityProposal';
@@ -1668,6 +1669,17 @@ export const resolvers = {
         return localData;
       } catch (err) {
         console.error('GraphQL Error refreshExecutiveBriefingData:', err);
+        throw err;
+      }
+    },
+
+    triggerModelTraining: async () => {
+      try {
+        console.log("⚡ [GraphQL] triggerModelTraining triggered");
+        const grpcRes = await grpcTriggerModelTraining();
+        return grpcRes;
+      } catch (err) {
+        console.error('GraphQL Error triggerModelTraining:', err);
         throw err;
       }
     }

@@ -3,9 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://siddheshharwande:9rZl6EdTIxz36IFM@siddhesh.ygdquz6.mongodb.net/SovereignMind';
-
 let isConnected = false;
+let mongoServer: any = null;
 
 export async function connectMongoDB(): Promise<void> {
   if (isConnected) {
@@ -14,13 +13,18 @@ export async function connectMongoDB(): Promise<void> {
   }
 
   try {
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000,
+    // Direct Replica Set URI bypassing SRV to fix Node.js DNS ECONNREFUSED issues
+    const uri = process.env.MONGODB_URI || 'mongodb://siddheshharwande:9rZl6EdTIxz36IFM@ac-gdt7bmm-shard-00-00.ygdquz6.mongodb.net:27017,ac-gdt7bmm-shard-00-01.ygdquz6.mongodb.net:27017,ac-gdt7bmm-shard-00-02.ygdquz6.mongodb.net:27017/SovereignMind?ssl=true&replicaSet=atlas-11im4i-shard-0&authSource=admin&retryWrites=true&w=majority';
+    
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+      family: 4,
     });
+    
     isConnected = true;
-    console.log('✅ MongoDB connected successfully to SovereignMind database.');
+    console.log(`✅ MongoDB Atlas connected successfully`);
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
+    console.error('❌ MongoDB Atlas connection failed:', error);
     throw error;
   }
 }

@@ -494,3 +494,13 @@ export function getOperatorDashboardData(): Promise<any> {
   });
 }
 
+// ── MODEL TRAINING ENDPOINTS ──
+
+export function triggerModelTraining(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.TriggerModelTraining({}, (err: any, response: any) => {
+      if (err) return reject(err); resolve(response);
+    });
+  });
+}
+
