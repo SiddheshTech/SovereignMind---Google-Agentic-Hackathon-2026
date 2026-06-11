@@ -608,19 +608,19 @@ class SovereignMindServicer:
   # RESTORED ENDPOINTS
   # =========================================================================
 
-  async def GenerateRiskRadarData(self, request, context):
+  async def GenerateRiskRadar(self, request, context):
       from app.services.risk_radar import risk_radar
       return self._build_radar_response(risk_radar.get_radar_data())
 
-  async def GenerateForecastData(self, request, context):
+  async def GenerateForecast(self, request, context):
       from app.services.forecast_engine import forecast_engine
       return self._build_forecast_response(forecast_engine.generate_forecast(request.timeframe))
 
-  async def GenerateBlackSwanData(self, request, context):
+  async def GenerateBlackSwan(self, request, context):
       from app.services.black_swan_engine import black_swan_engine
       return self._build_blackswan_response(black_swan_engine.generate_blackswan())
 
-  async def GetNationModelData(self, request, context):
+  async def GetNationModel(self, request, context):
       from app.services.nation_model_engine import nation_model_engine
       return self._build_nationmodel_response(nation_model_engine.get_nation_model_data())
 
@@ -628,11 +628,11 @@ class SovereignMindServicer:
       from app.services.nation_model_engine import nation_model_engine
       return self._build_nationmodel_response(nation_model_engine.execute_shock_scenario(request.scenarioId))
 
-  async def GenerateDependenciesData(self, request, context):
+  async def GenerateDependencies(self, request, context):
       from app.services.dependencies_engine import dependencies_engine
       return self._build_dependencies_response(dependencies_engine.get_dependencies_data())
 
-  async def GetInfrastructureData(self, request, context):
+  async def GetInfrastructure(self, request, context):
       from app.services.infrastructure_engine import infrastructure_engine
       return self._build_infrastructure_response(infrastructure_engine.get_infrastructure_data())
 

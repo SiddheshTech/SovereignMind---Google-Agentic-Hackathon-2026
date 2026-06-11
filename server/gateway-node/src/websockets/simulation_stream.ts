@@ -12,7 +12,13 @@ export function initWebSocketServer(server: Server) {
 
   server.on('upgrade', (request, socket, head) => {
     const url = request.url || '';
-    const allowedPaths = ['/ws/sandbox', '/ws/authority-maps', '/ws/sandbox-ticks', '/ws/settings', '/ws/procurement', '/ws/intelligence'];
+    const allowedPaths = [
+      '/ws/sandbox', '/ws/authority-maps', '/ws/sandbox-ticks', '/ws/settings', 
+      '/ws/procurement', '/ws/intelligence', '/ws/risk-radar', '/ws/forecasting',
+      '/ws/black-swan', '/ws/nation-model', '/ws/dependencies', '/ws/infrastructure',
+      '/ws/analytics', '/ws/crisis', '/ws/collaboration', '/ws/command-center',
+      '/ws/executive-briefing'
+    ];
     if (allowedPaths.includes(url)) {
       wss?.handleUpgrade(request, socket, head, (ws) => {
         wss?.emit('connection', ws, request);

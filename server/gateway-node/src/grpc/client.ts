@@ -264,28 +264,28 @@ export function deleteComplianceRecord(id: string): Promise<any> {
 
 export function generateRiskRadarData(): Promise<any> {
   return new Promise((resolve, reject) => {
-    grpcClient.GenerateRiskRadarData({}, (err: any, response: any) => {
+    grpcClient.GenerateRiskRadar({}, (err: any, response: any) => {
       if (err) return reject(err); resolve(response);
     });
   });
 }
 export function generateForecastData(timeframe: string): Promise<any> {
   return new Promise((resolve, reject) => {
-    grpcClient.GenerateForecastData({ timeframe }, (err: any, response: any) => {
+    grpcClient.GenerateForecast({ timeframe }, (err: any, response: any) => {
       if (err) return reject(err); resolve(response);
     });
   });
 }
 export function generateBlackSwanData(): Promise<any> {
   return new Promise((resolve, reject) => {
-    grpcClient.GenerateBlackSwanData({}, (err: any, response: any) => {
+    grpcClient.GenerateBlackSwan({}, (err: any, response: any) => {
       if (err) return reject(err); resolve(response);
     });
   });
 }
 export function getNationModelData(): Promise<any> {
   return new Promise((resolve, reject) => {
-    grpcClient.GetNationModelData({}, (err: any, response: any) => {
+    grpcClient.GetNationModel({}, (err: any, response: any) => {
       if (err) return reject(err); resolve(response);
     });
   });
@@ -299,14 +299,14 @@ export function executeShockScenario(scenarioId: string): Promise<any> {
 }
 export function generateDependenciesData(): Promise<any> {
   return new Promise((resolve, reject) => {
-    grpcClient.GenerateDependenciesData({}, (err: any, response: any) => {
+    grpcClient.GenerateDependencies({}, (err: any, response: any) => {
       if (err) return reject(err); resolve(response);
     });
   });
 }
 export function getInfrastructureData(): Promise<any> {
   return new Promise((resolve, reject) => {
-    grpcClient.GetInfrastructureData({}, (err: any, response: any) => {
+    grpcClient.GetInfrastructure({}, (err: any, response: any) => {
       if (err) return reject(err); resolve(response);
     });
   });
