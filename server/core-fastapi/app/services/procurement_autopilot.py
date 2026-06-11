@@ -1,12 +1,11 @@
 from typing import Dict, Any, List
 import uuid
-from app.core.dataset_manager import dataset_manager
 
 class ProcurementAutopilot:
   """
   Emergency Contracting Autopilot
-  Sources supplies, scales to real-world demographics using WPP datasets,
-  verifies constitutional compliance, and drafts automated legal purchase orders.
+  Sources supplies, matches and grades vendors, verifies constitutional compliance, 
+  and drafts automated legal purchase orders in real-time.
   """
   def __init__(self):
     self.synthetic_vendors = [
@@ -43,41 +42,34 @@ class ProcurementAutopilot:
         "categories": ["general", "medical", "water", "shelter"],
         "price_unit": 14000.0,
         "delivery_lead_time_days": 2,
-        "base_compliance_score": 62, 
+        "base_compliance_score": 62, # Low score due to unregulated third-party sourcing
         "region": "CN"
       }
     ]
 
-  def source_and_draft(self, country_code: str, item_needed: str, quantity: int, reason: str) -> Dict[str, Any]:
-    print(f"📦 Autopilot matching vendors for {country_code.upper()}: {item_needed}. Reason: '{reason}'")
+  def source_and_draft(self, item_needed: str, quantity: int, reason: str) -> Dict[str, Any]:
+    print(f"📦 Autopilot matching vendors for: {item_needed} (Qty: {quantity}). Reason: '{reason}'")
     
-    # Scale procurement quantities autonomously using REAL dataset demographic sizing
-    real_data = dataset_manager.get_country_data(country_code)
-    actual_population = real_data["population"]
-    
-    # If the user asks for '1' or a low baseline quantity, we assume it's a per-100k-citizens baseline 
-    # and autonomously scale the procurement package to fit the exact actual population size from the dataset!
-    scaled_quantity = quantity
-    if quantity < 100:
-        scaling_factor = actual_population / 100000.0
-        scaled_quantity = int(quantity * scaling_factor)
-        print(f"📈 [Demographic Autopilot] Rescaled procurement quantity from {quantity} to {scaled_quantity:,} based on actual dataset population ({actual_population:,.0f}).")
-
     item_lower = item_needed.lower()
     matched_vendors = []
     
+    # Simple search index mapping items to categories
     for vendor in self.synthetic_vendors:
       match = False
       for cat in vendor["categories"]:
         if cat in item_lower:
           match = True
           break
+      # If no explicit category match, default add general logistics
       if not match and "general" in vendor["categories"]:
         match = True
         
       if match or len(matched_vendors) < 2:
+        # Calculate suitability score based on lead time and compliance
         lead_time_penalty = max(0.0, (10.0 - vendor["delivery_lead_time_days"]) * 5.0)
         match_score = (vendor["base_compliance_score"] * 0.6) + lead_time_penalty
+        
+        # Constitutional check: If compliance score is too low, flag it
         constitutional_clearance = vendor["base_compliance_score"] >= 70
 
         matched_vendors.append({
@@ -89,19 +81,20 @@ class ProcurementAutopilot:
           "constitutional_clearance": constitutional_clearance
         })
 
+    # Sort matched vendors by score descending
     matched_vendors.sort(key=lambda x: x["match_score"], reverse=True)
 
     if not matched_vendors:
       return {"success": False, "item_needed": item_needed, "matched_vendors": []}
 
     selected_vendor = matched_vendors[0]
-    total_cost = selected_vendor["price_unit"] * scaled_quantity
+    total_cost = selected_vendor["price_unit"] * quantity
     po_number = f"PO-{uuid.uuid4().hex[:8].upper()}"
 
+    # Draft standard markdown Purchase Order
     po_draft = f"""# EMERGENCY PURCHASE ORDER
 **PO NUMBER:** {po_number}
 **DATE:** 2026-06-01
-**REGION:** {country_code.upper()} (Population: {actual_population:,.0f})
 **URGENT STATUS:** CRITICAL CRISIS ACQUISITION
 
 ### PARTIES
@@ -109,9 +102,9 @@ class ProcurementAutopilot:
 2. **Seller:** {selected_vendor["name"]} (ID: {selected_vendor["id"]})
 
 ### LINE ITEMS
-| Item Description | Base Qty Ratio | Auto-Scaled Qty | Unit Price | Total Cost | Est. Delivery |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| {item_needed} | {quantity} per 100k | {scaled_quantity:,} | ${selected_vendor["price_unit"]:.2f} | ${total_cost:,.2f} | {selected_vendor["delivery_lead_time_days"]} Days |
+| Item Description | Qty | Unit Price | Total Cost | Est. Delivery |
+| :--- | :--- | :--- | :--- | :--- |
+| {item_needed} | {quantity:,} | ${selected_vendor["price_unit"]:.2f} | ${total_cost:,.2f} | {selected_vendor["delivery_lead_time_days"]} Days |
 
 ### CRISIS JUSTIFICATION
 *"{reason}"*
@@ -122,14 +115,14 @@ class ProcurementAutopilot:
 - **Payment Terms:** Net-30 post-delivery, backed by Emergency Constitutional Allocation Funds.
 """
 
+    # Draft Legal Compliance Packet
     compliance_packet = f"""# CONSTITUTIONAL COMPLIANCE & LEGAL CLEARANCE PACKET
 **TARGET ACQUISITION:** {po_number} - {item_needed}
 **VETTED BY:** Autonomous Constitutional AI Layer
-**DATASET CONTEXT:** Demographic Scaling validated against World Population Prospects.
 
 ### 1. LEGAL AUTHORITY CHECK
 - **Executive Order Citation:** Emergency Civil Resilience Act (Section 4a)
-- **Power Delegation:** Valid emergency authorization is active for {country_code.upper()}. No federal/state boundary overreaches identified.
+- **Power Delegation:** Valid emergency authorization is active. No federal/state boundary overreaches identified.
 - **Procurement Exceptions:** standard competitive bidding rules are bypassed under Emergency Powers (Regulation 102-C).
 
 ### 2. VENDOR BACKGROUND ASSESSMENT

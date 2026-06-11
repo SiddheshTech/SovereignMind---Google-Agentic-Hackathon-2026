@@ -16,6 +16,45 @@ interface AnalyticsDashboardProps {
   initialTab?: 'metrics' | 'scoring' | 'reports';
 }
 
+
+const GQL_GET_ANALYTICS = `
+  query {
+    getAnalyticsData {
+      keyMetrics { title value trend trendDir statusColor }
+      vectorData { value isAnomaly }
+      scoring { label score baseline color }
+      reports { id title desc date confidence category isCritical }
+    }
+  }
+`;
+
+const GQL_SIMULATE_ANALYTICS = `
+  mutation {
+    simulateAnalyticsUpdate {
+      id
+    }
+  }
+`;
+
+const GQL_GENERATE_SYNTHESIS = `
+  mutation GenerateSynthesis($domain: String!, $horizon: String!) {
+    generateSynthesisReport(domain: $domain, horizon: $horizon) {
+      id
+    }
+  }
+`;
+
+async function graphqlRequest(query: string, variables: any = {}) {
+  const res = await fetch('/api/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables })
+  });
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors[0].message);
+  return json.data;
+}
+
 export function AnalyticsDashboard({ initialTab = 'metrics' }: AnalyticsDashboardProps) {
   const [activeTab, setActiveTab] = React.useState(initialTab);
 
@@ -26,7 +65,36 @@ export function AnalyticsDashboard({ initialTab = 'metrics' }: AnalyticsDashboar
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState({ dateRange: '30d', region: 'Global', category: 'All' });
 
-  const handleAction = async (id: string) => {
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const wsRef = React.useRef<WebSocket | null>(null);
+
+  const fetchAnalytics = async () => {
+    try {
+      const res = await graphqlRequest(GQL_GET_ANALYTICS);
+      if (res.getAnalyticsData) setAnalyticsData(res.getAnalyticsData);
+    } catch (e) { console.error(e); }
+  };
+
+  React.useEffect(() => {
+    fetchAnalytics();
+    const wsUrl = window.location.protocol === 'https:' ? `wss://${window.location.host}/ws/analytics` : `ws://localhost:4000/ws/analytics`;
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'ANALYTICS_DATA_UPDATED') {
+            setAnalyticsData(msg.data);
+          }
+        } catch (err) {}
+      };
+    } catch (err) {}
+    return () => wsRef.current?.close();
+  }, []);
+
+
+  const handleAction = async (id: string, cb?: () => Promise<void>) => {
     if (id === 'filter') {
       setShowFilterModal(true);
       return;
@@ -34,7 +102,8 @@ export function AnalyticsDashboard({ initialTab = 'metrics' }: AnalyticsDashboar
     
     if (id === 'export') {
       setActionState({ id, status: 'loading' });
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await graphqlRequest(GQL_SIMULATE_ANALYTICS); // We will hijack export to simulate update for demonstration
+
       
       const csvContent = "Date,Metric,Value\n2026-06-01,Global Resilience Index,84.2\n2026-06-01,Supply Shock Delta,2.8\n2026-06-01,Systemic Volatility,14.1\n";
       const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -53,7 +122,7 @@ export function AnalyticsDashboard({ initialTab = 'metrics' }: AnalyticsDashboar
 
     setActionState({ id, status: 'loading' });
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      if (cb) { await cb(); } else { await new Promise(resolve => setTimeout(resolve, 800)); }
       setActionState({ id, status: 'success' });
       setTimeout(() => setActionState({ id: '', status: 'idle' }), 2000);
     } catch {
@@ -138,7 +207,7 @@ export function AnalyticsDashboard({ initialTab = 'metrics' }: AnalyticsDashboar
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <MetricsView />
+            <MetricsView data={analyticsData} />
           </motion.div>
         )}
         {activeTab === 'scoring' && (
@@ -150,7 +219,7 @@ export function AnalyticsDashboard({ initialTab = 'metrics' }: AnalyticsDashboar
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <ScoringView />
+            <ScoringView data={analyticsData} />
           </motion.div>
         )}
         {activeTab === 'reports' && (
@@ -162,7 +231,7 @@ export function AnalyticsDashboard({ initialTab = 'metrics' }: AnalyticsDashboar
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <IntelligenceReportsView actionState={actionState} handleAction={handleAction} />
+            <IntelligenceReportsView data={analyticsData} actionState={actionState} handleAction={handleAction} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -170,17 +239,24 @@ export function AnalyticsDashboard({ initialTab = 'metrics' }: AnalyticsDashboar
   );
 }
 
-function MetricsView() {
+function MetricsView({ data }: { data: any }) {
   const [chartType, setChartType] = useState<'line'|'bar'>('bar');
+  const keyMetrics = data?.keyMetrics || [
+    { title: "Global Resilience Index", value: "84.2", trend: "+1.4%", trendDir: "up", statusColor: "blue" },
+    { title: "Supply Shock Delta", value: "2.8%", trend: "-0.5%", trendDir: "down", statusColor: "emerald" },
+    { title: "Systemic Volatility", value: "14.1", trend: "+2.2%", trendDir: "up", statusColor: "amber" },
+    { title: "Critical Node failures", value: "0", trend: "Nominal", trendDir: "neutral", statusColor: "emerald" }
+  ];
+  const vectorData = data?.vectorData || Array.from({length: 40}).map((_, i) => ({ value: 40 + Math.random() * 60, isAnomaly: i === 12 || i === 28 }));
+
 
   return (
     <div className="space-y-6">
       {/* Top Value Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <MetricKeyCard title="Global Resilience Index" value="84.2" trend="+1.4%" trendDir="up" statusColor="blue" />
-        <MetricKeyCard title="Supply Shock Delta" value="2.8%" trend="-0.5%" trendDir="down" statusColor="emerald" />
-        <MetricKeyCard title="Systemic Volatility" value="14.1" trend="+2.2%" trendDir="up" statusColor="amber" />
-        <MetricKeyCard title="Critical Node failures" value="0" trend="Nominal" trendDir="neutral" statusColor="emerald" />
+        {keyMetrics.map((m: any, idx: number) => (
+          <MetricKeyCard key={idx} {...m} />
+        ))}
       </div>
 
       {/* Main Chart Area */}
@@ -207,9 +283,9 @@ function MetricsView() {
              {[1,2,3,4].map(i => <div key={i} className="w-full h-px bg-slate-800/50" />)}
            </div>
            
-           {Array.from({length: 40}).map((_, i) => {
-             const height = 40 + Math.random() * 60;
-             const isAnomaly = i === 12 || i === 28;
+           {vectorData.map((dp: any, i: number) => {
+             const height = dp.value;
+             const isAnomaly = dp.isAnomaly;
              return (
               <div key={i} className="relative w-full flex items-end h-[calc(100%-24px)] group">
                 <div 
@@ -256,7 +332,14 @@ function MetricKeyCard({ title, value, trend, trendDir, statusColor }: any) {
   )
 }
 
-function ScoringView() {
+function ScoringView({ data }: { data: any }) {
+  const scoring = data?.scoring || [
+    { label: "Institutional Viability", score: 92, baseline: 85, color: "emerald" },
+    { label: "Energy Grid Resilience", score: 78, baseline: 80, color: "amber" },
+    { label: "Financial Vector Stability", score: 64, baseline: 70, color: "rose" },
+    { label: "Cyber Defense Posture", score: 88, baseline: 85, color: "blue" },
+    { label: "Logistics & Supply Link", score: 94, baseline: 90, color: "emerald" }
+  ];
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
@@ -268,11 +351,9 @@ function ScoringView() {
         </div>
 
         <div className="space-y-6">
-           <ScoreBar label="Institutional Viability" score={92} color="emerald" baseline={85} />
-           <ScoreBar label="Energy Grid Resilience" score={78} color="amber" baseline={80} />
-           <ScoreBar label="Financial Vector Stability" score={64} color="rose" baseline={70} />
-           <ScoreBar label="Cyber Defense Posture" score={88} color="blue" baseline={85} />
-           <ScoreBar label="Logistics & Supply Link" score={94} color="emerald" baseline={90} />
+           {scoring.map((s: any, idx: number) => (
+             <ScoreBar key={idx} {...s} />
+           ))}
         </div>
       </div>
 
@@ -294,13 +375,25 @@ function ScoringView() {
           {/* Polygon representation */}
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
              <polygon 
-               points="50,15 80,35 70,80 20,70 15,40" 
+               points={scoring.map((s: any, i: number) => {
+                 const angle = (Math.PI * 2 * i) / scoring.length - Math.PI / 2;
+                 const radius = (s.score / 100) * 45; // Max radius 45 to fit in viewBox
+                 const x = 50 + radius * Math.cos(angle);
+                 const y = 50 + radius * Math.sin(angle);
+                 return `${x},${y}`;
+               }).join(' ')} 
                fill="rgba(59, 130, 246, 0.2)" 
                stroke={PALETTE.blue} 
                strokeWidth="1.5" 
              />
              <polygon 
-               points="50,25 70,45 60,70 30,60 25,45" 
+               points={scoring.map((s: any, i: number) => {
+                 const angle = (Math.PI * 2 * i) / scoring.length - Math.PI / 2;
+                 const radius = (s.baseline / 100) * 45; // Max radius 45
+                 const x = 50 + radius * Math.cos(angle);
+                 const y = 50 + radius * Math.sin(angle);
+                 return `${x},${y}`;
+               }).join(' ')} 
                fill="none" 
                stroke="rgba(255,255,255,0.2)" 
                strokeWidth="1" 
@@ -309,10 +402,17 @@ function ScoringView() {
           </svg>
 
           {/* Labels */}
-          <span className="absolute -top-6 text-[10px] font-mono text-gray-400">INSTITUTIONAL</span>
-          <span className="absolute -bottom-6 text-[10px] font-mono text-gray-400">LOGISTICS</span>
-          <span className="absolute -left-10 text-[10px] font-mono text-gray-400">CYBER</span>
-          <span className="absolute -right-8 text-[10px] font-mono text-gray-400">ENERGY</span>
+          {scoring.map((s: any, i: number) => {
+             const angle = (Math.PI * 2 * i) / scoring.length - Math.PI / 2;
+             const radius = 55; // Labels outside the polygon
+             const x = 50 + radius * Math.cos(angle);
+             const y = 50 + radius * Math.sin(angle);
+             return (
+               <div key={i} className="absolute text-[10px] font-mono text-gray-400 text-center whitespace-nowrap transform -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
+                 {s.label.split(' ')[0].toUpperCase()}
+               </div>
+             );
+          })}
         </div>
       </div>
 
@@ -346,7 +446,20 @@ function ScoreBar({ label, score, color, baseline }: { label: string, score: num
   );
 }
 
-function IntelligenceReportsView({ actionState, handleAction }: any) {
+function IntelligenceReportsView({ data, actionState, handleAction }: any) {
+  const [domain, setDomain] = useState("All Systems Overview");
+  const [horizon, setHorizon] = useState("180 Days (N_STEP)");
+
+  const onGenerate = async () => {
+    handleAction('generate', async () => {
+      await graphqlRequest(GQL_GENERATE_SYNTHESIS, { domain, horizon });
+    });
+  };
+
+  const reports = data?.reports || [
+    { id: '1', title: "Macro-Economic Stress Analysis (Q3 Projection)", desc: "Analysis of compound effects of fiat volatility...", date: "2 hours ago", confidence: 94, category: "Strategic", isCritical: false }
+  ];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
@@ -364,35 +477,9 @@ function IntelligenceReportsView({ actionState, handleAction }: any) {
           </div>
         </div>
 
-        <ReportRow 
-          title="Macro-Economic Stress Analysis (Q3 Projection)" 
-          desc="Analysis of compound effects of fiat volatility overlapping with sector 4 supply constraint over next 180 days."
-          date="2 hours ago"
-          confidence={94}
-          category="Strategic"
-        />
-        <ReportRow 
-          title="Grid Vulnerability Audit - Nordic Sector" 
-          desc="Automated review of dependency cascades arising from winter anomaly baseline."
-          date="14 hours ago"
-          confidence={88}
-          category="Infrastructure"
-          isCritical
-        />
-        <ReportRow 
-          title="Socio-Political Cohesion Index Update" 
-          desc="Sentiment aggregation across public/private channels indicating a 1.2% dip in localized trust metrics."
-          date="1 day ago"
-          confidence={96}
-          category="Intelligence"
-        />
-        <ReportRow 
-          title="Water Reservoir Predictive Model Variance" 
-          desc="Discrepancy detected between forecasted inflow and projected consumption in Zone C."
-          date="2 days ago"
-          confidence={82}
-          category="Environmental"
-        />
+        {reports.map((r: any) => (
+          <ReportRow key={r.id} {...r} />
+        ))}
       </div>
 
       {/* Automated Synthesis Generator */}
@@ -409,25 +496,25 @@ function IntelligenceReportsView({ actionState, handleAction }: any) {
            <div className="space-y-4 mb-8">
              <div className="flex flex-col gap-2">
                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Focus Domain</label>
-               <select className="bg-slate-900 border border-slate-800 text-xs text-white rounded-lg px-3 py-2 outline-none">
-                 <option>All Systems Overview</option>
-                 <option>Supply Chain Integrity</option>
-                 <option>Geopolitical Kinetic Risks</option>
+               <select value={domain} onChange={e => setDomain(e.target.value)} className="bg-slate-900 border border-slate-800 text-xs text-white rounded-lg px-3 py-2 outline-none">
+                 <option value="All Systems Overview">All Systems Overview</option>
+                 <option value="Supply Chain Integrity">Supply Chain Integrity</option>
+                 <option value="Geopolitical Kinetic Risks">Geopolitical Kinetic Risks</option>
                </select>
              </div>
              <div className="flex flex-col gap-2">
                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Time Horizon</label>
-               <select className="bg-slate-900 border border-slate-800 text-xs text-white rounded-lg px-3 py-2 outline-none">
-                 <option>180 Days (N_STEP)</option>
-                 <option>30 Days (Tactical)</option>
-                 <option>3 Years (Strategic)</option>
+               <select value={horizon} onChange={e => setHorizon(e.target.value)} className="bg-slate-900 border border-slate-800 text-xs text-white rounded-lg px-3 py-2 outline-none">
+                 <option value="180 Days (N_STEP)">180 Days (N_STEP)</option>
+                 <option value="30 Days (Tactical)">30 Days (Tactical)</option>
+                 <option value="3 Years (Strategic)">3 Years (Strategic)</option>
                </select>
              </div>
            </div>
         </div>
 
         <button 
-          onClick={() => handleAction('generate')} 
+          onClick={onGenerate} 
           disabled={actionState.status === 'loading'}
           className="w-full bg-white text-black py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
         >

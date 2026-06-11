@@ -22,6 +22,8 @@ import { MetricDetailDashboard } from './MetricDetailDashboard';
 import { ViewFullIntelligence } from './ViewFullIntelligence';
 import { AIStrategicBriefing } from './AIStrategicBriefing';
 import { ScenarioMode } from './ScenarioMode';
+import { fetchOperatorDashboardData } from '../lib/dashboardApi';
+import { useGenericWS } from '../lib/useGenericWS';
 
 interface OperatorDashboardProps {
   user?: {
@@ -72,11 +74,23 @@ export function OperatorDashboard({ user, activeItem = 'dashboard', onNavigate }
   const [directiveForm, setDirectiveForm] = useState({ title: '', executionType: 'Strategic', target: '', priority: 'Standard' });
   const [directiveState, setDirectiveState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "New intelligence brief generated for Indo-Pacific theater", time: "2 min ago", read: false },
-    { id: 2, text: "Grid resilience metric dropped by 0.4%", time: "1 hr ago", read: false },
-    { id: 3, text: "Sovereign AI model successfully updated", time: "3 hrs ago", read: true }
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchOperatorDashboardData().then(data => {
+      if (data && data.notifications) {
+        setNotifications(data.notifications);
+      }
+    });
+  }, []);
+
+  useGenericWS('ws://localhost:4000/ws/operator-dashboard', (event: any) => {
+    if (event.type === 'OPERATOR_DASHBOARD_DATA_UPDATED') {
+      if (event.data && event.data.notifications) {
+        setNotifications(event.data.notifications);
+      }
+    }
+  });
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

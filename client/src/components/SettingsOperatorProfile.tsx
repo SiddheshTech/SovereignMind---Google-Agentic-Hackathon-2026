@@ -1,45 +1,132 @@
-import React, { useState } from 'react';
-import { Shield, Database, Lock, User, AlertTriangle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Shield, Database, Lock, User, AlertTriangle, AlertCircle, Loader2, Save } from 'lucide-react';
+import { fetchSystemSettings, saveSystemSettings } from '../lib/settingsApi';
+
+type Operator = {
+  name: string;
+  id: string;
+  institution: string;
+  role: string;
+};
+
+type Toggles = {
+  tfa: boolean;
+  e2e: boolean;
+  geo: boolean;
+  antigravity: boolean;
+  telemetry: boolean;
+};
 
 export function SettingsOperatorProfile({ addToast }: { addToast: (msg: string, type?: 'success' | 'warning' | 'error' | 'info') => void }) {
-  const [operator, setOperator] = useState({
-    name: 'Clara Oswald',
-    id: 'OPR-9481-B',
-    institution: 'Sovereign Logistics Core',
-    role: 'Quantum Level 4 Overseer'
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [operator, setOperator] = useState<Operator>({
+    name: '',
+    id: '',
+    institution: '',
+    role: '',
   });
-
-  const [toggles, setToggles] = useState({
+  const [toggles, setToggles] = useState<Toggles>({
     tfa: true,
     e2e: true,
     geo: false,
     antigravity: false,
     telemetry: true,
   });
-
-  const handleToggle = (key: keyof typeof toggles) => {
-    setToggles(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
+  const [modelBound, setModelBound] = useState('Hybrid Secure Cloud (Default)');
   const [dangerModal, setDangerModal] = useState<string | null>(null);
   const [dangerConfirming, setDangerConfirming] = useState(false);
 
-  const confirmDangerAction = () => {
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const s = await fetchSystemSettings();
+      setOperator({
+        name: s.operatorName || '',
+        id: s.operatorId || '',
+        institution: s.operatorInstitution || '',
+        role: s.operatorRole || '',
+      });
+      try {
+        const t = JSON.parse(s.operatorTogglesJson || '{}');
+        setToggles({
+          tfa: t.tfa ?? true,
+          e2e: t.e2e ?? true,
+          geo: t.geo ?? false,
+          antigravity: t.antigravity ?? false,
+          telemetry: t.telemetry ?? true,
+        });
+      } catch (_) {}
+      setModelBound(s.modelProcessingBound || 'Hybrid Secure Cloud (Default)');
+    } catch (err: any) {
+      addToast('Failed to load profile settings.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleToggle = (key: keyof Toggles) => {
+    setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveSystemSettings({
+        operatorName: operator.name,
+        operatorId: operator.id,
+        operatorInstitution: operator.institution,
+        operatorRole: operator.role,
+        operatorTogglesJson: JSON.stringify(toggles),
+        modelProcessingBound: modelBound,
+      });
+      addToast('Operator profile saved successfully.', 'success');
+    } catch (err: any) {
+      addToast('Failed to save profile: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDangerAction = async () => {
     setDangerConfirming(true);
     setTimeout(() => {
       setDangerConfirming(false);
-      const action = dangerModal === 'tokens' ? 'All active session tokens have been revoked.' : 'Scorched Earth protocol engaged. Wipe initiated.';
+      const action = dangerModal === 'tokens'
+        ? 'All active session tokens have been revoked.'
+        : 'Scorched Earth protocol engaged. Wipe initiated.';
       addToast(action, 'success');
       setDangerModal(null);
     }, 1500);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-pink-400" size={32} />
+        <span className="ml-3 text-gray-400 text-sm">Loading operator profile…</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 relative">
       <section>
-        <h3 className="text-sm font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800 pb-2">
-          <User size={16} className="text-pink-400" /> Identity & Clearance
-        </h3>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-6">
+          <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+            <User size={16} className="text-pink-400" /> Identity &amp; Clearance
+          </h3>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-pink-500/20"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <InputGroup label="Operator Name" value={operator.name} onChange={(v: string) => setOperator({...operator, name: v})} />
@@ -63,7 +150,7 @@ export function SettingsOperatorProfile({ addToast }: { addToast: (msg: string, 
 
       <section>
         <h3 className="text-sm font-bold text-white mb-6 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800 pb-2 mt-8">
-          <Database size={16} className="text-purple-400" /> AI & Telemetry
+          <Database size={16} className="text-purple-400" /> AI &amp; Telemetry
         </h3>
         
         <div className="space-y-4">
@@ -72,7 +159,11 @@ export function SettingsOperatorProfile({ addToast }: { addToast: (msg: string, 
           
           <div className="pt-4 space-y-3">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Model Processing Bound</label>
-            <select className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500">
+            <select
+              value={modelBound}
+              onChange={e => setModelBound(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500"
+            >
               <option>Strictly Local (Isolated Enclave)</option>
               <option>Hybrid Secure Cloud (Default)</option>
               <option>Full External Processing</option>

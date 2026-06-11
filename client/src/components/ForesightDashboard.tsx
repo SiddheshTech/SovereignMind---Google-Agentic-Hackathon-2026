@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Target, Activity, Settings, Filter, Download, Clock, Zap, Search, Eye, TrendingUp, Sparkles, Navigation, AlertTriangle, ChevronRight, Wind, Waves, ShieldAlert, AlertCircle, X } from 'lucide-react';
 
@@ -205,6 +205,86 @@ export function ForesightDashboard({ initialTab = 'risk-radar' }: ForesightDashb
 }
 
 function RiskRadarView({ handleAction, actionState, setActiveModal }: any) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const fetchRiskRadar = async () => {
+    try {
+      const res = await graphqlRequest(GQL_GET_RISK_RADAR);
+      if (res.getRiskRadarData) {
+        setData(res.getRiskRadarData);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchRiskRadar();
+    
+    // Connect WebSocket
+    const wsUrl = window.location.protocol === 'https:' 
+      ? `wss://${window.location.host}/ws/risk-radar`
+      : `ws://localhost:4000/ws/risk-radar`;
+      
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'RISK_RADAR_DATA_UPDATED') {
+            setData(msg.data);
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error('WS parsing error', err);
+        }
+      };
+    } catch (err) {
+      console.error('WS Connection error', err);
+    }
+    
+    return () => {
+      wsRef.current?.close();
+    };
+  }, []);
+
+  const triggerScan = async () => {
+    setLoading(true);
+    try {
+      await graphqlRequest(GQL_GENERATE_RISK_RADAR);
+    } catch (e) {
+      console.error(e);
+      setLoading(false);
+    }
+  };
+
+  const getThreatIcon = (name: string, colorClass: string) => {
+    const lname = name.toLowerCase();
+    if (lname.includes('water')) return <Waves size={14} className={colorClass} />;
+    if (lname.includes('inflation') || lname.includes('economic')) return <TrendingUp size={14} className={colorClass} />;
+    if (lname.includes('cyber')) return <ShieldAlert size={14} className={colorClass} />;
+    return <AlertCircle size={14} className={colorClass} />;
+  };
+
+  const getSeverityColor = (severity: string) => {
+    const s = severity.toLowerCase();
+    if (s.includes('very high')) return 'red';
+    if (s.includes('high')) return 'orange';
+    if (s.includes('medium')) return 'yellow';
+    return 'sky';
+  };
+
+  const getTrendType = (trend: string) => {
+    const t = trend.toLowerCase();
+    if (t.includes('rising')) return 'rising';
+    if (t.includes('falling')) return 'falling';
+    return 'stable';
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Radar Main Panel */}
@@ -218,64 +298,58 @@ function RiskRadarView({ handleAction, actionState, setActiveModal }: any) {
             <div className="text-[10px] text-gray-500 font-mono mt-1">PROBABILITY VS SEVERITY VS TIME</div>
           </div>
         </div>
+        
+        <div className="absolute top-6 right-6 z-10">
+           <button 
+             onClick={triggerScan}
+             disabled={loading}
+             className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-xl font-bold transition-all text-xs cursor-pointer disabled:opacity-50 flex items-center gap-2"
+           >
+             {loading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Search size={14}/>}
+             {loading ? 'Scanning...' : 'Scan For New Threats'}
+           </button>
+        </div>
 
         <div className="h-full pt-20 flex flex-col justify-center">
-           <table className="w-full text-left">
-             <thead>
-               <tr className="border-b border-white/5">
-                 <th className="pb-3 px-4 text-[10px] font-mono text-gray-400 uppercase tracking-wider">Threat</th>
-                 <th className="pb-3 px-4 text-[10px] font-mono text-gray-400 uppercase tracking-wider">Probability</th>
-                 <th className="pb-3 px-4 text-[10px] font-mono text-gray-400 uppercase tracking-wider">Severity</th>
-                 <th className="pb-3 px-4 text-[10px] font-mono text-gray-400 uppercase tracking-wider">Time to Impact</th>
-               </tr>
-             </thead>
-             <tbody>
-               <tr onClick={() => setActiveModal('threat-water-crisis')} className="border-b border-white/5 hover:bg-white/[0.02] group cursor-pointer">
-                 <td className="py-4 px-4 text-sm font-semibold text-gray-200 group-hover:text-white flex items-center gap-2"><Waves size={14} className="text-red-500"/> Water Crisis</td>
-                 <td className="py-4 px-4">
-                   <div className="flex items-center gap-2">
-                     <span className="text-xs font-mono font-bold text-red-500">82%</span>
-                     <div className="w-16 h-1 bg-slate-900 rounded-full"><div className="w-[82%] h-full bg-red-500 rounded-full" /></div>
-                   </div>
-                 </td>
-                 <td className="py-4 px-4"><span className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-500 font-bold text-[10px] uppercase rounded">Very High</span></td>
-                 <td className="py-4 px-4 text-xs font-mono text-gray-400">48 Months</td>
-               </tr>
-               <tr onClick={() => setActiveModal('threat-inflation')} className="border-b border-white/5 hover:bg-white/[0.02] group cursor-pointer">
-                 <td className="py-4 px-4 text-sm font-semibold text-gray-200 group-hover:text-white flex items-center gap-2"><TrendingUp size={14} className="text-orange-500"/> Inflation</td>
-                 <td className="py-4 px-4">
-                   <div className="flex items-center gap-2">
-                     <span className="text-xs font-mono font-bold text-orange-500">67%</span>
-                     <div className="w-16 h-1 bg-slate-900 rounded-full"><div className="w-[67%] h-full bg-orange-500 rounded-full" /></div>
-                   </div>
-                 </td>
-                 <td className="py-4 px-4"><span className="px-2 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-500 font-bold text-[10px] uppercase rounded">High</span></td>
-                 <td className="py-4 px-4 text-xs font-mono text-gray-400">12 Months</td>
-               </tr>
-               <tr onClick={() => setActiveModal('threat-cyberattack')} className="border-b border-white/5 hover:bg-white/[0.02] group cursor-pointer">
-                 <td className="py-4 px-4 text-sm font-semibold text-gray-200 group-hover:text-white flex items-center gap-2"><ShieldAlert size={14} className="text-amber-500"/> Cyberattack</td>
-                 <td className="py-4 px-4">
-                   <div className="flex items-center gap-2">
-                     <span className="text-xs font-mono font-bold text-amber-500">54%</span>
-                     <div className="w-16 h-1 bg-slate-900 rounded-full"><div className="w-[54%] h-full bg-amber-500 rounded-full" /></div>
-                   </div>
-                 </td>
-                 <td className="py-4 px-4"><span className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-500 font-bold text-[10px] uppercase rounded">Medium</span></td>
-                 <td className="py-4 px-4 text-xs font-mono text-gray-400">Imminent</td>
-               </tr>
-               <tr onClick={() => setActiveModal('threat-political-instability')} className="border-b border-white/5 hover:bg-white/[0.02] group cursor-pointer">
-                 <td className="py-4 px-4 text-sm font-semibold text-gray-200 group-hover:text-white flex items-center gap-2"><AlertCircle size={14} className="text-yellow-500"/> Political Instability</td>
-                 <td className="py-4 px-4">
-                   <div className="flex items-center gap-2">
-                     <span className="text-xs font-mono font-bold text-yellow-500">42%</span>
-                     <div className="w-16 h-1 bg-slate-900 rounded-full"><div className="w-[42%] h-full bg-yellow-500 rounded-full" /></div>
-                   </div>
-                 </td>
-                 <td className="py-4 px-4"><span className="px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-bold text-[10px] uppercase rounded">Medium</span></td>
-                 <td className="py-4 px-4 text-xs font-mono text-gray-400">24 Months</td>
-               </tr>
-             </tbody>
-           </table>
+           <div className="overflow-y-auto pr-2 max-h-full scrollbar-none">
+             <table className="w-full text-left">
+               <thead>
+                 <tr className="border-b border-white/5">
+                   <th className="sticky top-0 bg-[#030712] pb-3 px-4 text-[10px] font-mono text-gray-400 uppercase tracking-wider">Threat</th>
+                   <th className="sticky top-0 bg-[#030712] pb-3 px-4 text-[10px] font-mono text-gray-400 uppercase tracking-wider">Probability</th>
+                   <th className="sticky top-0 bg-[#030712] pb-3 px-4 text-[10px] font-mono text-gray-400 uppercase tracking-wider">Severity</th>
+                   <th className="sticky top-0 bg-[#030712] pb-3 px-4 text-[10px] font-mono text-gray-400 uppercase tracking-wider">Time to Impact</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {data ? data.threats.map((t: any) => {
+                   const cName = getSeverityColor(t.severity);
+                   const colorClass = `text-${cName}-500`;
+                   const bgClass = `bg-${cName}-500`;
+                   const pillClass = `bg-${cName}-500/10 border border-${cName}-500/20 text-${cName}-500`;
+                   return (
+                     <tr key={t.id} onClick={() => setActiveModal(`threat-${t.threatName.toLowerCase().replace(/\s+/g, '-')}`)} className="border-b border-white/5 hover:bg-white/[0.02] group cursor-pointer">
+                       <td className="py-4 px-4 text-sm font-semibold text-gray-200 group-hover:text-white flex items-center gap-2">
+                         {getThreatIcon(t.threatName, colorClass)} {t.threatName}
+                       </td>
+                       <td className="py-4 px-4">
+                         <div className="flex items-center gap-2">
+                           <span className={`text-xs font-mono font-bold ${colorClass}`}>{t.probability}%</span>
+                           <div className="w-16 h-1 bg-slate-900 rounded-full"><div className={`h-full ${bgClass} rounded-full`} style={{ width: `${t.probability}%` }} /></div>
+                         </div>
+                       </td>
+                       <td className="py-4 px-4"><span className={`px-2 py-1 font-bold text-[10px] uppercase rounded ${pillClass}`}>{t.severity}</span></td>
+                       <td className="py-4 px-4 text-xs font-mono text-gray-400">{t.timeToImpact}</td>
+                     </tr>
+                   );
+                 }) : (
+                   <tr>
+                     <td colSpan={4} className="py-8 text-center text-gray-500 text-xs italic">No threat data found. Please run a scan.</td>
+                   </tr>
+                 )}
+               </tbody>
+             </table>
+           </div>
         </div>
       </div>
 
@@ -284,11 +358,18 @@ function RiskRadarView({ handleAction, actionState, setActiveModal }: any) {
         <h3 className="text-sm font-semibold text-white tracking-wide mb-6 flex items-center gap-2"><Zap size={16} className="text-sky-400" /> Early Warning Signals</h3>
         
         <div className="flex-1 overflow-y-auto pr-2 space-y-3 scrollbar-none">
-          <ThreatCard title="Political Instability" impact="High" probability="Rising" trend="rising" type="critical" />
-          <ThreatCard title="Food Insecurity" impact="Severe" probability="Stable" trend="stable" type="critical" />
-          <ThreatCard title="Energy Shortages" impact="High" probability="Rising" trend="rising" type="warning" />
-          <ThreatCard title="Civil Unrest" impact="Medium" probability="Falling" trend="falling" type="neutral" />
-          <ThreatCard title="Economic Shocks" impact="Unknown" probability="Volatile" trend="stable" type="warning" />
+          {data ? data.signals.map((s: any) => (
+             <ThreatCard 
+               key={s.id} 
+               title={s.signalName} 
+               impact={s.impact} 
+               probability={s.probabilityTrend} 
+               trend={getTrendType(s.probabilityTrend)} 
+               type={s.impact.toLowerCase().includes('high') || s.impact.toLowerCase().includes('severe') ? 'critical' : 'warning'} 
+             />
+          )) : (
+             <p className="text-sm text-gray-500 italic text-center py-4">No active signals.</p>
+          )}
         </div>
         
         <div className="mt-4 pt-4 border-t border-white/5">
@@ -325,7 +406,7 @@ function RiskNode({ top, left, type, label, desc }: { top: string, left: string,
   );
 }
 
-function ThreatCard({ title, impact, probability, trend, type }: { title: string, impact: string, probability: string, trend: 'rising'|'falling'|'stable', type: string }) {
+function ThreatCard({ title, impact, probability, trend, type }: { title: string, impact: string, probability: string, trend: 'rising'|'falling'|'stable', type: string, key?: any }) {
   const color = type === 'critical' ? PALETTE.orange : type === 'warning' ? PALETTE.purple : PALETTE.sky;
   
   return (
@@ -355,7 +436,138 @@ function ThreatCard({ title, impact, probability, trend, type }: { title: string
   );
 }
 
-function ForecastingView() {
+const GQL_GET_FORECAST = `
+  query {
+    getForecastData {
+      timelinePoints { year title description }
+      stabilityDeviation
+      convergencePointDescription
+    }
+  }
+`;
+
+const GQL_GET_RISK_RADAR = `
+  query {
+    getRiskRadarData {
+      threats { id threatName probability severity timeToImpact }
+      signals { id signalName impact probabilityTrend }
+    }
+  }
+`;
+
+const GQL_GENERATE_RISK_RADAR = `
+  mutation {
+    generateRiskRadarData {
+      threats { id threatName probability severity timeToImpact }
+      signals { id signalName impact probabilityTrend }
+    }
+  }
+`;
+
+const GQL_GENERATE_FORECAST = `
+  mutation {
+    generateForecastData {
+      id
+    }
+  }
+`;
+
+const GQL_GET_BLACK_SWAN = `
+  query {
+    getBlackSwanData {
+      anomalies { title probability severity description }
+      permutationsRun
+    }
+  }
+`;
+
+const GQL_GENERATE_BLACK_SWAN = `
+  mutation {
+    generateBlackSwanData {
+      id
+    }
+  }
+`;
+
+async function graphqlRequest(query: string, variables: any = {}) {
+  const res = await fetch('/api/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors[0]?.message || 'GraphQL error');
+  return json.data;
+}
+
+function ForecastingView({ handleAction }: any) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const fetchForecast = async () => {
+    try {
+      const res = await graphqlRequest(GQL_GET_FORECAST);
+      if (res.getForecastData) {
+        setData(res.getForecastData);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchForecast();
+    
+    // Connect WebSocket
+    const wsUrl = window.location.protocol === 'https:' 
+      ? `wss://${window.location.host}/ws/forecasting`
+      : `ws://localhost:4000/ws/forecasting`;
+      
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'FORECAST_DATA_UPDATED') {
+            setData(msg.data);
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error('WS parsing error', err);
+        }
+      };
+    } catch (err) {
+      console.error('WS Connection error', err);
+    }
+    
+    return () => {
+      wsRef.current?.close();
+    };
+  }, []);
+
+  const triggerForecast = async () => {
+    setLoading(true);
+    try {
+      await graphqlRequest(GQL_GENERATE_FORECAST);
+    } catch (e) {
+      console.error(e);
+      setLoading(false);
+    }
+  };
+
+  const getColors = (idx: number) => {
+    const colors = [
+      { bg: 'bg-indigo-400', blur: 'bg-indigo-400', text: 'text-indigo-400' },
+      { bg: 'bg-amber-400', blur: 'bg-amber-500', text: 'text-amber-500' },
+      { bg: 'bg-orange-400', blur: 'bg-orange-500', text: 'text-orange-500' },
+      { bg: 'bg-red-400', blur: 'bg-red-500', text: 'text-red-500' }
+    ];
+    return colors[idx % colors.length];
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* AI Future Timeline */}
@@ -365,40 +577,31 @@ function ForecastingView() {
              <h3 className="text-xl font-bold font-mono text-white tracking-tight flex items-center gap-2"><Clock className="text-purple-400" /> AI Future Timeline</h3>
              <p className="text-xs text-gray-400 mt-2">Projected trajectory based on current global markers. (Today → 2030)</p>
            </div>
+           <button 
+             onClick={triggerForecast}
+             disabled={loading}
+             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all text-xs cursor-pointer disabled:opacity-50 flex items-center gap-2"
+           >
+             {loading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Sparkles size={14}/>}
+             {loading ? 'Synthesizing...' : 'Generate New Forecast'}
+           </button>
         </div>
 
         <div className="relative border-l border-white/10 ml-4 py-4 space-y-8">
-           <div className="relative pl-6">
-             <div className="absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full bg-indigo-400 blur-[1px]"></div>
-             <div className="absolute left-[-4px] top-2 w-2 h-2 rounded-full bg-indigo-300"></div>
-             <span className="text-xs font-mono text-indigo-400 font-bold block mb-1">Today</span>
-             <h4 className="text-sm font-bold text-white mb-1">Current State</h4>
-             <p className="text-[11px] text-gray-400 leading-relaxed font-sans">Baseline stability maintained. Mild supply chain friction detected, but institutional trust holds nominal.</p>
-           </div>
-
-           <div className="relative pl-6">
-             <div className="absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full bg-amber-500 blur-[1px]"></div>
-             <div className="absolute left-[-4px] top-2 w-2 h-2 rounded-full bg-amber-400"></div>
-             <span className="text-xs font-mono text-amber-500 font-bold block mb-1">2027</span>
-             <h4 className="text-sm font-bold text-white mb-1">Urban Migration Surge</h4>
-             <p className="text-[11px] text-gray-400 leading-relaxed font-sans">Climate and economic pressures accelerate rural-to-urban migration, straining housing, infrastructure, and local governance.</p>
-           </div>
-
-           <div className="relative pl-6">
-             <div className="absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full bg-orange-500 blur-[1px]"></div>
-             <div className="absolute left-[-4px] top-2 w-2 h-2 rounded-full bg-orange-400"></div>
-             <span className="text-xs font-mono text-orange-500 font-bold block mb-1">2028</span>
-             <h4 className="text-sm font-bold text-white mb-1">Energy Deficit Risk</h4>
-             <p className="text-[11px] text-gray-400 leading-relaxed font-sans">Renewable transition lags behind raw power demand from AI and industrial growth, creating grid instability and rolling blackout risks.</p>
-           </div>
-
-           <div className="relative pl-6">
-             <div className="absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full bg-red-500 blur-[1px]"></div>
-             <div className="absolute left-[-4px] top-2 w-2 h-2 rounded-full bg-red-400"></div>
-             <span className="text-xs font-mono text-red-500 font-bold block mb-1">2030</span>
-             <h4 className="text-sm font-bold text-white mb-1">Water Stress Emergency</h4>
-             <p className="text-[11px] text-gray-400 leading-relaxed font-sans">Critical aquifer depletion in multiple breadbasket regions leads to cascading agricultural failures and geopolitical tension over cross-border rivers.</p>
-           </div>
+           {data ? data.timelinePoints.map((tp: any, idx: number) => {
+             const colors = getColors(idx);
+             return (
+               <div key={idx} className="relative pl-6">
+                 <div className={`absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full ${colors.blur} blur-[1px]`}></div>
+                 <div className={`absolute left-[-4px] top-2 w-2 h-2 rounded-full ${colors.bg}`}></div>
+                 <span className={`text-xs font-mono ${colors.text} font-bold block mb-1`}>{tp.year}</span>
+                 <h4 className="text-sm font-bold text-white mb-1">{tp.title}</h4>
+                 <p className="text-[11px] text-gray-400 leading-relaxed font-sans">{tp.description}</p>
+               </div>
+             );
+           }) : (
+             <p className="text-sm text-gray-500 italic pl-6">No forecast generated yet. Initialize deep synthesis.</p>
+           )}
         </div>
       </div>
 
@@ -409,14 +612,16 @@ function ForecastingView() {
              <div className="flex justify-between items-end border-b border-white/5 pb-3">
                <div>
                  <span className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Stability Deviation (2030)</span>
-                 <span className="text-2xl font-mono text-orange-400 font-bold">-14.2%</span>
+                 <span className="text-2xl font-mono text-orange-400 font-bold">{data ? data.stabilityDeviation : '--%'}</span>
                </div>
                <Activity className="text-orange-400" />
              </div>
              
              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <span className="flex items-center gap-2 text-xs font-bold text-red-400 mb-2"><AlertTriangle size={14} /> Convergence Point</span>
-                <p className="text-[11px] text-red-300/80 leading-relaxed">Energy deficits (2028) overlapping with water stress (2030) create a severe compounding vulnerability window.</p>
+                <p className="text-[11px] text-red-300/80 leading-relaxed">
+                  {data ? data.convergencePointDescription : 'Waiting for convergence data...'}
+                </p>
              </div>
            </div>
         </div>
@@ -443,17 +648,64 @@ function ForecastMetricCard({ title, val, status, color }: { title: string, val:
 }
 
 function BlackSwanView() {
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const fetchBlackSwan = async () => {
+    try {
+      const res = await graphqlRequest(GQL_GET_BLACK_SWAN);
+      if (res.getBlackSwanData) {
+        setData(res.getBlackSwanData);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchBlackSwan();
+
+    const wsUrl = window.location.protocol === 'https:' 
+      ? `wss://${window.location.host}/ws/black-swan`
+      : `ws://localhost:4000/ws/black-swan`;
+      
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'BLACK_SWAN_DATA_UPDATED') {
+            setData(msg.data);
+            setLoading(false);
+            setSuccess(true);
+            setTimeout(() => setSuccess(false), 3000);
+          }
+        } catch (err) {
+          console.error('WS parsing error', err);
+        }
+      };
+    } catch (err) {
+      console.error('WS Connection error', err);
+    }
+    
+    return () => {
+      wsRef.current?.close();
+    };
+  }, []);
   
-  const handleSynthesis = () => {
+  const handleSynthesis = async () => {
     setLoading(true);
     setSuccess(false);
-    setTimeout(() => {
+    try {
+      await graphqlRequest(GQL_GENERATE_BLACK_SWAN);
+    } catch (e) {
+      console.error(e);
       setLoading(false);
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    }, 2000);
+    }
   };
 
   return (
@@ -466,7 +718,7 @@ function BlackSwanView() {
         <div className="relative z-10 text-center max-w-md mx-auto">
           {success && (
             <div className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap bg-indigo-500/20 text-indigo-400 px-4 py-1.5 rounded-full text-xs font-mono font-bold animate-fade-in border border-indigo-500/20">
-              ✓ Synthesis Complete: 3 Anomalies Detected
+              ✓ Synthesis Complete: {data?.anomalies?.length || 0} Anomalies Detected
             </div>
           )}
           <div className="w-16 h-16 mx-auto mb-6 bg-slate-950 border border-white/10 rounded-2xl flex items-center justify-center shadow-lg">
@@ -487,11 +739,15 @@ function BlackSwanView() {
           
           <div className="mt-8 pt-8 border-t border-white/10 flex justify-center gap-6">
             <div className="flex flex-col items-center">
-              <span className="text-xl font-mono text-white font-bold">14,281</span>
+              <span className="text-xl font-mono text-white font-bold">
+                {data ? data.permutationsRun.toLocaleString() : '--'}
+              </span>
               <span className="text-[10px] text-gray-500 uppercase mt-1 tracking-wider">Permutations</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-xl font-mono" style={{ color: PALETTE.purple }}>3</span>
+              <span className="text-xl font-mono" style={{ color: PALETTE.purple }}>
+                {data ? data.anomalies.length : '--'}
+              </span>
               <span className="text-[10px] text-gray-500 uppercase mt-1 tracking-wider">Anomalies</span>
             </div>
           </div>
@@ -500,32 +756,27 @@ function BlackSwanView() {
 
       <div className="space-y-6 flex flex-col">
         <h3 className="text-sm font-semibold text-white tracking-wide">Synthesized Anomalies</h3>
-        <BlackSwanCard 
-          title="Simultaneous Subsea Cable / LEO Cascade"
-          probability="0.04%"
-          severity="Extinction-Class"
-          desc="Solar flare interference precisely timed with targeted kinetic strikes on 4 major subsea trunk lines. Bypasses standard redundancies."
-        />
-        <BlackSwanCard 
-          title="Synthesized Agricultural Pathogen Alpha"
-          probability="0.12%"
-          severity="Catastrophic"
-          desc="AI-optimized crop pathogen resistant to standard fungicides, emerging simultaneously in 3 disconnected global breadbaskets."
-        />
-        <BlackSwanCard 
-          title="Recursive Financial Ledger Corruption"
-          probability="0.08%"
-          severity="Catastrophic"
-          desc="Quantum-seeded weakness in standard ledger hashing propagates silently over 18 months before triggering a synchronistic liquidation."
-        />
+        {data ? data.anomalies.map((a: any, idx: number) => (
+          <BlackSwanCard 
+            key={idx}
+            title={a.title}
+            probability={a.probability}
+            severity={a.severity}
+            desc={a.description}
+          />
+        )) : (
+          <p className="text-sm text-gray-500 italic">No anomalies synthesized yet. Initialize the engine.</p>
+        )}
         
         <div className="mt-auto p-4 border border-dashed rounded-2xl bg-white/[0.02]" style={{ borderColor: `${PALETTE.deepTeal}50` }}>
           <div className="flex items-center gap-3 mb-2">
-            <Activity size={14} style={{ color: PALETTE.sky }} className="animate-pulse" />
-            <span className="text-xs font-semibold text-white">Engine Status: Synthesizing</span>
+            <Activity size={14} style={{ color: PALETTE.sky }} className={loading ? "animate-pulse" : ""} />
+            <span className="text-xs font-semibold text-white">
+              {loading ? 'Engine Status: Synthesizing' : 'Engine Status: Idle'}
+            </span>
           </div>
           <div className="w-full bg-slate-900 rounded-full h-1 overflow-hidden">
-            <div className="bg-gradient-to-r from-pink-500 to-purple-500 h-full w-2/3 animate-pulse" />
+            <div className={`bg-gradient-to-r from-pink-500 to-purple-500 h-full w-2/3 ${loading ? 'animate-pulse' : 'opacity-20'}`} />
           </div>
         </div>
       </div>
@@ -534,7 +785,7 @@ function BlackSwanView() {
   );
 }
 
-function BlackSwanCard({ title, probability, severity, desc }: { title: string, probability: string, severity: string, desc: string }) {
+function BlackSwanCard({ title, probability, severity, desc }: { key?: React.Key, title: string, probability: string, severity: string, desc: string }) {
   return (
     <div className="bg-[#030712] border rounded-2xl p-5 hover:border-white/20 transition-colors group" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
       <div className="flex justify-between items-start mb-3">

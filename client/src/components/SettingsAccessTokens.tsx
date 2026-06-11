@@ -1,54 +1,78 @@
-import React, { useState } from 'react';
-import { Key, Plus, Trash2, Copy, RefreshCw, StopCircle, Check, Activity, AlertTriangle } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Key, Plus, Trash2, Copy, RefreshCw, StopCircle, Check, Activity, AlertTriangle, Loader2 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  fetchAccessTokens,
+  generateAccessToken as apiGenerateToken,
+  updateAccessToken as apiUpdateToken,
+} from '../lib/settingsApi';
+
+type Token = {
+  id: string;
+  owner: string;
+  tokenType: string;
+  created: string;
+  lastUsed: string;
+  status: string;
+};
+
+const chartData = [
+  { name: 'Mon', active: 400, failed: 24 },
+  { name: 'Tue', active: 300, failed: 13 },
+  { name: 'Wed', active: 550, failed: 48 },
+  { name: 'Thu', active: 450, failed: 8 },
+  { name: 'Fri', active: 600, failed: 100 },
+  { name: 'Sat', active: 700, failed: 12 },
+  { name: 'Sun', active: 850, failed: 5 },
+];
 
 export function SettingsAccessTokens({ addToast }: { addToast: (msg: string, type?: 'success' | 'warning' | 'error' | 'info') => void }) {
-  const [tokens, setTokens] = useState([
-    { id: 'tok_9x8f', owner: 'Core Systems API', type: 'API Key', created: '2025-10-12', lastUsed: '2 mins ago', status: 'Active' },
-    { id: 'tok_3k2a', owner: 'Logistics Service', type: 'JWT', created: '2026-01-05', lastUsed: '1 hr ago', status: 'Active' },
-    { id: 'tok_5m4n', owner: 'Operator Portal', type: 'OAuth', created: '2026-03-22', lastUsed: '5 days ago', status: 'Suspended' },
-    { id: 'tok_7p1q', owner: 'Quantum Relay Node', type: 'Machine ID', created: '2026-04-10', lastUsed: '10 secs ago', status: 'Active' },
-  ]);
-
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
+  const [form, setForm] = useState({
+    type: 'API Key',
+    environment: 'Production',
+    permissions: 'Read-Only',
+  });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchAccessTokens();
+      setTokens(data || []);
+    } catch (err: any) {
+      addToast('Failed to load access tokens.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, [load]);
+
   const exportTokens = () => {
     addToast('Compiling secure token payload...', 'info');
     setTimeout(() => {
-       addToast('Tokens exported as CSV successfully.', 'success');
+      addToast('Tokens exported as CSV successfully.', 'success');
     }, 1500);
   };
 
-  const [form, setForm] = useState({
-    type: 'API Key',
-    expiry: '30 Days',
-    environment: 'Production',
-    permissions: 'Read-Only'
-  });
-
-  const chartData = [
-    { name: 'Mon', active: 400, failed: 24 },
-    { name: 'Tue', active: 300, failed: 13 },
-    { name: 'Wed', active: 550, failed: 48 },
-    { name: 'Thu', active: 450, failed: 8 },
-    { name: 'Fri', active: 600, failed: 100 },
-    { name: 'Sat', active: 700, failed: 12 },
-    { name: 'Sun', active: 850, failed: 5 },
-  ];
-
-  const handleAction = (id: string, action: string) => {
-    setTokens(prev => prev.map(t => {
-      if (t.id === id) {
-        if (action === 'Revoke') return { ...t, status: 'Revoked' };
-        if (action === 'Suspend') return { ...t, status: 'Suspended' };
-        if (action === 'Regenerate') return { ...t, status: 'Active', lastUsed: 'Never' };
-      }
-      return t;
-    }));
-    addToast(`Token ${action.toLowerCase()} successful.`, action === 'Revoke' ? 'error' : 'success');
+  const handleAction = async (id: string, action: string) => {
+    try {
+      const t = await apiUpdateToken(id, action);
+      setTokens(prev => prev.map(tok => tok.id === id ? {
+        ...tok,
+        status: t.status,
+        lastUsed: t.lastUsed,
+      } : tok));
+      addToast(`Token ${action.toLowerCase()} successful.`, action === 'Revoke' ? 'error' : 'success');
+    } catch (err: any) {
+      addToast('Action failed: ' + err.message, 'error');
+    }
   };
 
   const handleCopy = (text: string, id: string) => {
@@ -58,26 +82,23 @@ export function SettingsAccessTokens({ addToast }: { addToast: (msg: string, typ
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
-  const generateToken = (e: React.FormEvent) => {
+  const generateToken = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
-    setTimeout(() => {
-      const newTokenStr = `sm_${form.type.toLowerCase().replace(' ', '')}_${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
-      setGeneratedToken(newTokenStr);
-      setIsGenerating(false);
-      
-      const newEntry = {
-        id: `tok_${Math.random().toString(36).substring(2, 6)}`,
-        owner: 'New Identity',
-        type: form.type,
-        created: 'Just now',
-        lastUsed: 'Never',
-        status: 'Active'
-      };
-      setTokens([newEntry, ...tokens]);
+    try {
+      const t = await apiGenerateToken(form.type, form.environment, form.permissions);
+      setTokens(prev => [t, ...prev]);
+      const tokenStr = `sm_${form.type.toLowerCase().replace(' ', '')}_${t.id}`;
+      setGeneratedToken(tokenStr);
       addToast('New credentials generated', 'success');
-    }, 1000);
+    } catch (err: any) {
+      addToast('Token generation failed: ' + err.message, 'error');
+    } finally {
+      setIsGenerating(false);
+    }
   };
+
+  const activeCount = tokens.filter(t => t.status === 'Active').length;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -85,8 +106,8 @@ export function SettingsAccessTokens({ addToast }: { addToast: (msg: string, typ
       {/* Analytics */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Active Tokens', val: '142', icon: Key, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Expired Tokens', val: '86', icon: StopCircle, color: 'text-slate-400', bg: 'bg-slate-500/10' },
+          { label: 'Active Tokens', val: loading ? '—' : String(activeCount), icon: Key, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: 'Expired Tokens', val: loading ? '—' : String(tokens.filter(t => t.status === 'Revoked').length), icon: StopCircle, color: 'text-slate-400', bg: 'bg-slate-500/10' },
           { label: 'Failed Auth Attempts', val: '1,024', icon: Activity, color: 'text-amber-400', bg: 'bg-amber-500/10' },
           { label: 'Compromised Tokens', val: '0', icon: AlertTriangle, color: 'text-rose-400', bg: 'bg-rose-500/10' },
         ].map((stat, i) => (
@@ -201,51 +222,58 @@ export function SettingsAccessTokens({ addToast }: { addToast: (msg: string, typ
             </div>
           </div>
           <div className="flex-1 overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[500px]">
-              <thead className="bg-slate-800/20 text-gray-400 uppercase tracking-wider sticky top-0">
-                <tr>
-                  <th className="px-6 py-4 font-semibold">Token / Owner</th>
-                  <th className="px-6 py-4 font-semibold">Type</th>
-                  <th className="px-6 py-4 font-semibold">Last Used</th>
-                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/50 text-gray-300">
-                {tokens.filter(t => t.id.toLowerCase().includes(search.toLowerCase()) || t.owner.toLowerCase().includes(search.toLowerCase())).map(token => (
-                  <tr key={token.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-mono text-emerald-400/90 mb-1 flex items-center gap-2">
-                        {token.id}
-                        <button onClick={() => handleCopy(token.id, token.id)} className="text-gray-500 hover:text-gray-300">
-                          {copiedToken === token.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                      <div className="font-medium text-white">{token.owner}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-[10px] uppercase font-bold tracking-wider">{token.type}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-gray-400">{token.lastUsed}</div>
-                      <div className="text-[10px] text-gray-500 mt-1">{token.status}</div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                         <button onClick={() => handleAction(token.id, 'Regenerate')} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-gray-400 rounded transition-colors" title="Regenerate">
-                           <RefreshCw size={14} />
-                         </button>
-                         <button onClick={() => handleAction(token.id, 'Suspend')} className="p-1.5 bg-slate-800 hover:bg-amber-900/50 text-amber-500 rounded transition-colors" title="Suspend">
-                           <StopCircle size={14} />
-                         </button>
-                         <button onClick={() => handleAction(token.id, 'Revoke')} className="p-1.5 bg-slate-800 hover:bg-rose-900/50 text-rose-500 rounded transition-colors" title="Revoke">
-                           <Trash2 size={14} />
-                         </button>
-                      </div>
-                    </td>
+            {loading ? (
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="animate-spin text-pink-400" size={24} />
+                <span className="ml-2 text-gray-400 text-sm">Loading tokens…</span>
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs min-w-[500px]">
+                <thead className="bg-slate-800/20 text-gray-400 uppercase tracking-wider sticky top-0">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold">Token / Owner</th>
+                    <th className="px-6 py-4 font-semibold">Type</th>
+                    <th className="px-6 py-4 font-semibold">Last Used</th>
+                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50 text-gray-300">
+                  {tokens.filter(t => t.id.toLowerCase().includes(search.toLowerCase()) || t.owner.toLowerCase().includes(search.toLowerCase())).map(token => (
+                    <tr key={token.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-mono text-emerald-400/90 mb-1 flex items-center gap-2">
+                          {token.id.substring(0, 12)}…
+                          <button onClick={() => handleCopy(token.id, token.id)} className="text-gray-500 hover:text-gray-300">
+                            {copiedToken === token.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                          </button>
+                        </div>
+                        <div className="font-medium text-white">{token.owner}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-[10px] uppercase font-bold tracking-wider">{token.tokenType}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-gray-400">{token.lastUsed}</div>
+                        <div className={`text-[10px] mt-1 font-bold ${token.status === 'Active' ? 'text-emerald-400' : token.status === 'Suspended' ? 'text-amber-400' : 'text-rose-400'}`}>{token.status}</div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                           <button onClick={() => handleAction(token.id, 'Regenerate')} className="p-1.5 bg-slate-800 hover:bg-slate-700 text-gray-400 rounded transition-colors" title="Regenerate">
+                             <RefreshCw size={14} />
+                           </button>
+                           <button onClick={() => handleAction(token.id, 'Suspend')} className="p-1.5 bg-slate-800 hover:bg-amber-900/50 text-amber-500 rounded transition-colors" title="Suspend">
+                             <StopCircle size={14} />
+                           </button>
+                           <button onClick={() => handleAction(token.id, 'Revoke')} className="p-1.5 bg-slate-800 hover:bg-rose-900/50 text-rose-500 rounded transition-colors" title="Revoke">
+                             <Trash2 size={14} />
+                           </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </section>
       </div>

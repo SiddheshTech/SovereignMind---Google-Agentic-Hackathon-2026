@@ -8,6 +8,9 @@ import {
   Clock, ActivitySquare, Target, Users, Landmark, Scale, HeartPulse, Building2
 } from 'lucide-react';
 
+import { fetchCommandCenterData } from '../lib/dashboardApi';
+import { useGenericWS } from '../lib/useGenericWS';
+
 const PALETTE = {
   purple: '#7F22FE',     // Primary High-Tech accent
   orange: '#FF6900',     // Warning / Critical Action accent
@@ -16,35 +19,68 @@ const PALETTE = {
   deepTeal: '#073F4D',   // Deep framing lines
 };
 
+// Map string icon names to Lucide icons
+const iconMap: Record<string, any> = {
+  Globe, ShieldCheck, AlertTriangle, Landmark, TrendingDown, Users, HeartPulse, ActivitySquare, Droplet, Wheat, Building2, Zap
+};
+
 export function CommandCenter({ user, onNavigate }: { user?: any; onNavigate?: (id: string) => void }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    try {
+      const result = await fetchCommandCenterData();
+      setData(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useGenericWS('ws://localhost:4000/ws/command-center', (event) => {
+    if (event.type === 'COMMAND_CENTER_DATA_UPDATED') {
+      setData(event.data);
+    }
+  });
+
+  if (loading || !data) {
+    return <div className="text-white text-center p-20 font-mono animate-pulse">Establishing secure link to Command Center...</div>;
+  }
+
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto pb-24 text-gray-200 font-sans">
-      <ExecutiveIntelligenceBanner onNavigate={onNavigate} />
+      <ExecutiveIntelligenceBanner data={data} onNavigate={onNavigate} />
       
       <div>
         <h2 className="text-sm font-semibold tracking-widest uppercase text-gray-500 mb-4 px-2">Civilization Health Metrics</h2>
-        <CivilizationHealthMetrics onNavigate={onNavigate} />
+        <CivilizationHealthMetrics metrics={data.metrics} onNavigate={onNavigate} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
          <div className="lg:col-span-8 space-y-6">
-            <WorldIntelligenceMap onNavigate={onNavigate} />
-            <AIStrategicBrief onNavigate={onNavigate} />
+            <WorldIntelligenceMap mapPoints={data.mapPoints} onNavigate={onNavigate} />
+            <AIStrategicBrief aiBriefing={data.aiBriefing} onNavigate={onNavigate} />
          </div>
          <div className="lg:col-span-4 space-y-6">
-            <ActiveThreatFeed />
-            <FutureRiskRadar onNavigate={onNavigate} />
+            <ActiveThreatFeed threats={data.threats} />
+            <FutureRiskRadar futureRisks={data.futureRisks} onNavigate={onNavigate} />
          </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         <NationalRankings onNavigate={onNavigate} />
-         <DecisionRecommendationEngine onNavigate={onNavigate} />
+         <NationalRankings rankings={data.rankings} onNavigate={onNavigate} />
+         <DecisionRecommendationEngine recommendations={data.recommendations} onNavigate={onNavigate} />
       </div>
 
       <div>
         <h2 className="text-sm font-semibold tracking-widest uppercase text-gray-500 mb-4 px-2">Intelligence Timeline</h2>
-        <IntelligenceTimeline />
+        <IntelligenceTimeline timelineEvents={data.timelineEvents} />
       </div>
     </div>
   );
@@ -53,7 +89,7 @@ export function CommandCenter({ user, onNavigate }: { user?: any; onNavigate?: (
 // -------------------------------------------------------------
 // SECTION 1: Executive Intelligence Banner
 // -------------------------------------------------------------
-function ExecutiveIntelligenceBanner({ onNavigate }: { onNavigate?: (id: string) => void }) {
+function ExecutiveIntelligenceBanner({ data, onNavigate }: { data: any, onNavigate?: (id: string) => void }) {
   const [actionState, setActionState] = useState<{ id: string; status: 'idle' | 'loading' | 'success'}>( { id: '', status: 'idle' } );
 
   const handleAction = async (id: string) => {
@@ -86,26 +122,26 @@ function ExecutiveIntelligenceBanner({ onNavigate }: { onNavigate?: (id: string)
             <span className="w-2 h-2 rounded-full bg-[#00B8DB] animate-pulse" />
           </div>
           <h2 className="text-4xl font-light tracking-tight text-white flex items-baseline gap-3">
-            Stable <span className="text-2xl font-bold font-mono text-[#00B8DB]">72/100</span>
+            {data.stabilityLabel} <span className="text-2xl font-bold font-mono text-[#00B8DB]">{data.stabilityScore}/100</span>
           </h2>
         </div>
 
         <div className="flex-1 w-full lg:w-auto grid grid-cols-2 sm:grid-cols-4 gap-4 px-0 lg:px-8 border-y lg:border-y-0 lg:border-x border-white/10 py-4 lg:py-0">
           <div>
             <div className="text-[10px] text-gray-500 font-mono uppercase">Trend (30d)</div>
-            <div className="text-lg font-bold text-emerald-400 mt-1 flex items-center gap-1">↑ +2.1%</div>
+            <div className="text-lg font-bold text-emerald-400 mt-1 flex items-center gap-1">{data.trend30d}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 font-mono uppercase">Active Threats</div>
-            <div className="text-lg font-bold text-[#FF6900] mt-1">17</div>
+            <div className="text-lg font-bold text-[#FF6900] mt-1">{data.activeThreats}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 font-mono uppercase">Critical Nations</div>
-            <div className="text-lg font-bold text-rose-500 mt-1">4</div>
+            <div className="text-lg font-bold text-rose-500 mt-1">{data.criticalNations}</div>
           </div>
           <div>
             <div className="text-[10px] text-gray-500 font-mono uppercase">Emerging Risks</div>
-            <div className="text-lg font-bold text-amber-400 mt-1">11</div>
+            <div className="text-lg font-bold text-amber-400 mt-1">{data.emergingRisks}</div>
           </div>
         </div>
 
@@ -150,24 +186,13 @@ function ExecutiveIntelligenceBanner({ onNavigate }: { onNavigate?: (id: string)
 // -------------------------------------------------------------
 // SECTION 2: Civilization Health Metrics
 // -------------------------------------------------------------
-const METRICS = [
-  { id: 'stability', label: 'Civilization Stability', score: '83', status: 'Stable', details: 'Institutions, Economy, Social', icon: Globe, color: PALETTE.sky },
-  { id: 'resilience', label: 'National Resilience', score: '76', status: 'Optimal', details: 'Governance, Infra, Economy', icon: ShieldCheck, color: PALETTE.purple },
-  { id: 'crisis', label: 'Crisis Probability', score: '18', status: 'Low Risk', details: 'Political, Economic, Climate', icon: AlertTriangle, color: PALETTE.orange },
-  { id: 'governance', label: 'Governance Effectiveness', score: '89', status: 'High', details: 'Policy, Bureaucracy, Trust', icon: Landmark, color: PALETTE.sky },
-  { id: 'economic', label: 'Economic Fragility', score: '32', status: 'Warning', details: 'Debt, Inflation, Trade', icon: TrendingDown, color: PALETTE.orange },
-  { id: 'trust', label: 'Institutional Trust', score: '64', status: 'Moderate', details: 'Gov, Media, Military', icon: Users, color: '#10B981' },
-  { id: 'social', label: 'Social Cohesion', score: '71', status: 'Stable', details: 'Polarization, Divide', icon: HeartPulse, color: '#F43F5E' },
-  { id: 'emergency', label: 'Emergency Readiness', score: '92', status: 'Ready', details: 'Reserves, Hospitals, Teams', icon: ActivitySquare, color: PALETTE.purple },
-];
-
-function CivilizationHealthMetrics({ onNavigate }: { onNavigate?: (id: string) => void }) {
+function CivilizationHealthMetrics({ metrics, onNavigate }: { metrics: any[], onNavigate?: (id: string) => void }) {
   const [activeMetric, setActiveMetric] = useState<string | null>(null);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {METRICS.map((m) => {
-        const Icon = m.icon;
+      {metrics.map((m) => {
+        const Icon = iconMap[m.id] || Globe;
         const isSelected = activeMetric === m.id;
         return (
           <div 
@@ -209,19 +234,10 @@ function CivilizationHealthMetrics({ onNavigate }: { onNavigate?: (id: string) =
 // -------------------------------------------------------------
 // SECTION 3: World Intelligence Map
 // -------------------------------------------------------------
-function WorldIntelligenceMap({ onNavigate }: { onNavigate?: (id: string) => void }) {
+function WorldIntelligenceMap({ mapPoints, onNavigate }: { mapPoints: any[], onNavigate?: (id: string) => void }) {
   const layers = ['Active Crises', 'Conflict Zones', 'Economic Instability Hotspots', 'Migration Pressure Zones', 'Climate Risk Regions', 'Supply Chain Disruptions'];
   const [activeLayer, setActiveLayer] = useState('Active Crises');
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-
-  const points = [
-    { id: 'US', x: '20%', y: '35%', color: PALETTE.purple, pulse: true },
-    { id: 'BR', x: '32%', y: '65%', color: PALETTE.sky, pulse: false },
-    { id: 'EU', x: '50%', y: '25%', color: PALETTE.sky, pulse: false },
-    { id: 'NG', x: '52%', y: '52%', color: PALETTE.orange, pulse: true },
-    { id: 'IN', x: '70%', y: '45%', color: PALETTE.orange, pulse: true },
-    { id: 'CN', x: '78%', y: '35%', color: PALETTE.purple, pulse: false },
-  ];
 
   return (
     <div className="bg-[#030712] border rounded-3xl p-6 relative flex flex-col h-[600px] shadow-[0_20px_45px_rgba(0,0,0,0.6)]" style={{ borderColor: `${PALETTE.deepTeal}50` }}>
@@ -248,39 +264,51 @@ function WorldIntelligenceMap({ onNavigate }: { onNavigate?: (id: string) => voi
         <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
           backgroundImage: 'radial-gradient(circle at center, #073F4D 0%, transparent 70%), linear-gradient(0deg, rgba(3,7,18,1) 0%, rgba(3,7,18,0) 100%)'
         }} />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+        
+        {/* Placeholder SVG Map */}
+        <div className="absolute inset-0 opacity-30 flex items-center justify-center pointer-events-none">
+          <svg viewBox="0 0 1000 500" className="w-full h-full text-sky-900 fill-current" preserveAspectRatio="xMidYMid slice">
+             <path d="M150,150 Q200,100 300,150 T500,200 T700,150 T850,250 T750,400 T500,450 T200,350 Z" opacity="0.4" />
+             <path d="M400,250 Q450,200 550,250 T700,300 T650,450 T450,400 Z" opacity="0.2" />
+          </svg>
+        </div>
 
-        {points.map(pt => (
-          <div 
-            key={pt.id}
-            className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-            style={{ left: pt.x, top: pt.y }}
-            onClick={() => setSelectedCountry(pt.id)}
+        {/* Data Points */}
+        {mapPoints.map(point => (
+          <div
+            key={point.id}
+            className="absolute -translate-x-1/2 -translate-y-1/2 cursor-crosshair z-10"
+            style={{ left: point.x, top: point.y }}
+            onMouseEnter={() => setSelectedCountry(point.id)}
+            onMouseLeave={() => setSelectedCountry(null)}
           >
-            {pt.pulse && <div className="absolute inset-0 rounded-full animate-ping opacity-40 size-6 -m-2" style={{ backgroundColor: pt.color }} />}
-            <div className="w-2.5 h-2.5 rounded-full z-10 relative shadow-[0_0_10px_rgba(255,255,255,0.8)]" style={{ backgroundColor: pt.color }} />
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-mono font-bold text-white bg-black/50 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              {pt.id} Node
-            </div>
+            {point.pulse && <div className={`absolute inset-0 w-3 h-3 ${point.color} rounded-full animate-ping opacity-75`} />}
+            <div className={`relative w-3 h-3 ${point.color} rounded-full border border-white shadow-[0_0_15px_rgba(255,255,255,0.5)]`} />
+            
+            {/* Hover Tooltip */}
+            <AnimatePresence>
+              {selectedCountry === point.id && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 w-48 bg-slate-900/95 backdrop-blur-md border border-white/20 rounded-xl p-3 shadow-2xl z-50 pointer-events-none"
+                >
+                  <div className="text-xs font-bold text-white mb-1">Region: {point.id}</div>
+                  <div className="flex justify-between items-center text-[10px] font-mono text-gray-400 mb-0.5">
+                    <span>Stability:</span><span className="text-[#00B8DB]">{point.stability}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] font-mono text-gray-400 mb-2">
+                    <span>Resilience:</span><span className="text-purple-400">{point.resilience}</span>
+                  </div>
+                  <div className="text-[9px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded text-center uppercase tracking-widest">
+                    {point.activeRisk}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         ))}
-
-        {selectedCountry && (
-          <div className="absolute top-4 right-4 w-64 bg-slate-900/90 backdrop-blur border rounded-xl p-4 shadow-2xl animate-fade-in" style={{ borderColor: `${PALETTE.deepTeal}50` }}>
-             <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
-               <h4 className="text-sm font-bold text-white uppercase tracking-wide">Nation Intelligence: {selectedCountry}</h4>
-               <button type="button" onClick={() => setSelectedCountry(null)} className="text-gray-500 hover:text-white cursor-pointer">&times;</button>
-             </div>
-             <div className="space-y-3 text-xs mb-4">
-                <div className="flex justify-between"><span className="text-gray-400">Stability:</span> <span className="text-white font-mono">81/100</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">Resilience:</span> <span className="text-white font-mono">74/100</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">Active Risk:</span> <span className="text-[#FF6900] font-mono">Drought</span></div>
-             </div>
-             <button type="button" onClick={() => onNavigate?.('nation-model')} className="w-full py-2 bg-white/5 hover:bg-white/10 text-white text-[10px] font-mono tracking-wider rounded border border-white/10 transition-colors uppercase cursor-pointer">
-               Open Digital Twin &rarr;
-             </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -289,20 +317,19 @@ function WorldIntelligenceMap({ onNavigate }: { onNavigate?: (id: string) => voi
 // -------------------------------------------------------------
 // SECTION 4: AI Strategic Brief
 // -------------------------------------------------------------
-function AIStrategicBrief({ onNavigate }: { onNavigate?: (id: string) => void }) {
+function AIStrategicBrief({ aiBriefing, onNavigate }: { aiBriefing: string, onNavigate?: (id: string) => void }) {
   return (
-    <div className="bg-[#030712] border rounded-3xl p-6 relative" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
-       <div className="flex justify-between items-center mb-6">
-         <div className="flex items-center gap-2">
-           <Sparkles size={16} className="text-[#7F22FE]" />
-           <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono">AI Strategic Brief</h3>
-         </div>
+    <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
+       <div className="flex justify-between items-center mb-4">
+         <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono flex items-center gap-2">
+           <Cpu size={14} className="text-[#00B8DB]" /> Autonomous Analyst Briefing
+         </h3>
          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20">Updates Daily</span>
        </div>
 
        <div className="bg-slate-900/40 border border-white/5 p-4 rounded-xl">
          <p className="text-sm text-gray-200 leading-relaxed">
-           <span className="text-[#10B981] font-bold">India's</span> resilience score increased by <span className="text-emerald-400 font-bold">3.8%</span> due to infrastructure investments. However, water stress and urban migration pressures are projected to increase instability by <span className="text-amber-400 font-bold">2032</span>.
+           {aiBriefing}
          </p>
        </div>
 
@@ -318,14 +345,7 @@ function AIStrategicBrief({ onNavigate }: { onNavigate?: (id: string) => void })
 // -------------------------------------------------------------
 // SECTION 5: Active Threat Feed
 // -------------------------------------------------------------
-function ActiveThreatFeed() {
-  const threats = [
-    { title: 'Water Stress', trend: '↑', color: PALETTE.orange, time: 'Live' },
-    { title: 'Food Inflation', trend: '↑', color: PALETTE.orange, time: '-2m' },
-    { title: 'Migration Pressure', trend: '↑', color: PALETTE.purple, time: '-14m' },
-    { title: 'Energy Shortage', trend: 'Warning', color: '#EF4444', time: '-1h' },
-  ];
-
+function ActiveThreatFeed({ threats }: { threats: any[] }) {
   return (
     <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
        <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-4 flex items-center gap-2">
@@ -335,11 +355,11 @@ function ActiveThreatFeed() {
          {threats.map((t, i) => (
            <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-white/5 hover:bg-slate-900 transition-colors cursor-pointer group">
              <div className="flex items-center gap-3">
-               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: t.color }} />
+               <span className={`w-1.5 h-1.5 rounded-full ${t.color.replace('text-', 'bg-')}`} />
                <span className="text-xs font-semibold text-gray-200 group-hover:text-white">{t.title}</span>
              </div>
              <div className="flex items-center gap-3">
-               <span className="text-[10px] font-mono font-bold" style={{ color: t.color }}>{t.trend}</span>
+               <span className={`text-[10px] font-mono font-bold ${t.color}`}>{t.trend}</span>
                <span className="text-[9px] font-mono text-gray-500 w-6 text-right">{t.time}</span>
              </div>
            </div>
@@ -352,15 +372,7 @@ function ActiveThreatFeed() {
 // -------------------------------------------------------------
 // SECTION 6: Future Risk Radar
 // -------------------------------------------------------------
-function FutureRiskRadar({ onNavigate }: { onNavigate?: (id: string) => void }) {
-  const risks = [
-    { year: 2026, risk: 'Water Crisis', prob: '85%' },
-    { year: 2027, risk: 'Political Instability', prob: '60%' },
-    { year: 2028, risk: 'Economic Slowdown', prob: '72%' },
-    { year: 2029, risk: 'Energy Crisis', prob: '45%' },
-    { year: 2030, risk: 'Climate Shock', prob: '90%' },
-  ];
-
+function FutureRiskRadar({ futureRisks, onNavigate }: { futureRisks: any[], onNavigate?: (id: string) => void }) {
   return (
     <div className="bg-[#030712] border rounded-3xl p-6 overflow-hidden relative group h-full" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
        <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-6 flex items-center gap-2">
@@ -368,7 +380,7 @@ function FutureRiskRadar({ onNavigate }: { onNavigate?: (id: string) => void }) 
        </h3>
        
        <div className="relative pl-6 border-l border-white/10 space-y-6">
-         {risks.map((r, i) => (
+         {futureRisks.map((r, i) => (
            <div key={i} onClick={() => onNavigate?.('risk-radar')} className="relative cursor-pointer group/item">
              <div className="absolute -left-[29px] top-1 w-2 h-2 rounded-full border border-[#00B8DB] bg-[#030712] group-hover/item:bg-[#00B8DB] transition-colors pointer-events-none" />
              <div className="flex justify-between items-center">
@@ -386,22 +398,16 @@ function FutureRiskRadar({ onNavigate }: { onNavigate?: (id: string) => void }) 
 // -------------------------------------------------------------
 // SECTION 7: National Rankings
 // -------------------------------------------------------------
-function NationalRankings({ onNavigate }: { onNavigate?: (id: string) => void }) {
-  const ranks = [
-    { cat: 'Most Stable', n: 'Switzerland' },
-    { cat: 'Most Resilient', n: 'Norway' },
-    { cat: 'Fastest Recovering', n: 'Singapore' },
-    { cat: 'Highest Trust', n: 'Denmark' },
-  ];
+function NationalRankings({ rankings, onNavigate }: { rankings: any[], onNavigate?: (id: string) => void }) {
   return (
     <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
       <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-6">National Rankings</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {ranks.map((r, i) => (
+        {rankings.map((r, i) => (
           <div key={i} onClick={() => onNavigate?.('metrics')} className="p-4 rounded-xl bg-slate-950 border border-white/5 hover:border-white/20 transition-all cursor-pointer">
-            <div className="text-[9px] text-gray-500 font-mono uppercase mb-1">{r.cat}</div>
+            <div className="text-[9px] text-gray-500 font-mono uppercase mb-1">{r.category}</div>
             <div className="text-base font-bold text-white flex justify-between items-center">
-              {r.n}
+              {r.nation}
               <ChevronRight size={14} className="text-gray-600" />
             </div>
           </div>
@@ -414,14 +420,7 @@ function NationalRankings({ onNavigate }: { onNavigate?: (id: string) => void })
 // -------------------------------------------------------------
 // SECTION 8: Decision Recommendation Engine
 // -------------------------------------------------------------
-function DecisionRecommendationEngine({ onNavigate }: { onNavigate?: (id: string) => void }) {
-  const decisions = [
-    { text: 'Expand Water Infrastructure', impact: '+12% Resilience', icon: Droplet },
-    { text: 'Increase Food Reserves', impact: '+8% Stability', icon: Wheat },
-    { text: 'Strengthen Local Governance', impact: '+5% Trust', icon: Building2 },
-    { text: 'Diversify Energy Imports', impact: '-14% Fragility', icon: Zap },
-  ];
-
+function DecisionRecommendationEngine({ recommendations, onNavigate }: { recommendations: any[], onNavigate?: (id: string) => void }) {
   return (
     <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
       <div className="flex justify-between items-center mb-6">
@@ -432,8 +431,8 @@ function DecisionRecommendationEngine({ onNavigate }: { onNavigate?: (id: string
       </div>
       
       <div className="space-y-3">
-        {decisions.map((d, i) => {
-          const Icon = d.icon;
+        {recommendations.map((d, i) => {
+          const Icon = iconMap[d.icon] || Droplet;
           return (
             <div key={i} onClick={() => onNavigate?.('decision-room')} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-transparent hover:border-[#7F22FE]/40 transition-all cursor-pointer group">
               <div className="flex items-center gap-3">
@@ -454,19 +453,11 @@ function DecisionRecommendationEngine({ onNavigate }: { onNavigate?: (id: string
 // -------------------------------------------------------------
 // SECTION 9: Intelligence Timeline
 // -------------------------------------------------------------
-function IntelligenceTimeline() {
-  const events = [
-    { year: '2024', name: 'Global Floods', type: 'Climate' },
-    { year: '2025', name: 'Inflation Spike', type: 'Economic' },
-    { year: '2026', name: 'Migration Increase', type: 'Social' },
-    { year: '2028', name: 'Water Stress Forecast', type: 'Predictive' },
-    { year: '2031', name: 'Energy Crisis Risk', type: 'Predictive' },
-  ];
-
+function IntelligenceTimeline({ timelineEvents }: { timelineEvents: any[] }) {
   return (
     <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}30` }}>
       <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none">
-        {events.map((e, i) => (
+        {timelineEvents.map((e, i) => (
           <div key={i} className="min-w-[180px] p-4 rounded-xl border border-white/5 bg-slate-950 hover:bg-slate-900 transition-colors cursor-pointer cursor-ew-resize">
             <div className="text-[10px] font-mono text-[#00B8DB] mb-2">{e.year}</div>
             <div className="text-xs font-bold text-white mb-2">{e.name}</div>

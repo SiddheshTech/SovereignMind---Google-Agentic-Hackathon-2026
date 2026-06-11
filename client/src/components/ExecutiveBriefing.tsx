@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, ChevronDown, Filter, Settings, Download, Info, X, CheckCircle2, ChevronRight, Play, Pause, UserPlus, RefreshCw, Copy } from 'lucide-react';
+import { fetchExecutiveBriefingData } from '../lib/dashboardApi';
+import { useGenericWS } from '../lib/useGenericWS';
 
 const PALETTE = {
   purple: '#7F22FE',     
@@ -9,17 +11,37 @@ const PALETTE = {
 };
 
 export function ExecutiveBriefing() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [actionState, setActionState] = useState<{ id: string; status: 'idle' | 'loading' | 'success'}>( { id: '', status: 'idle' } );
   const [cycle, setCycle] = useState('Current Cycle');
   const [showCycleDropdown, setShowCycleDropdown] = useState(false);
   const [matrixTask, setMatrixTask] = useState<any>(null);
-  
-  // Admin form
   const [adminSaving, setAdminSaving] = useState(false);
-
-  // Filters state
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+
+  const loadData = async () => {
+    try {
+      const result = await fetchExecutiveBriefingData();
+      setData(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useGenericWS('ws://localhost:4000/ws/executive-briefing', (event) => {
+    if (event.type === 'EXECUTIVE_BRIEFING_DATA_UPDATED') {
+      setData(event.data);
+    }
+  });
 
   const handleAction = async (id: string) => {
     setActionState({ id, status: 'loading' });
@@ -32,23 +54,14 @@ export function ExecutiveBriefing() {
     }
   };
 
-  const tasks = [
-    { id: 1, title: "Review Systemic Dependencies Model", desc: "Examine structural weaknesses in Grid Zeta-9.", status: "Pending Review", statusColor: PALETTE.orange, date: "Today", priority: "Critical", owner: "Sec. Alvarez", dep: "Core DB" },
-    { id: 2, title: "Initialize Biosafety Simulation", desc: "Run contagion algorithms for sector 4 clearance.", status: "In Progress", statusColor: PALETTE.sky, date: "Tomorrow", priority: "High", owner: "Dr. Chen", dep: "Bio-Engine" },
-    { id: 3, title: "Execute Treaty Parameter Refresh", desc: "Update bilateral treaty constraints in Sovereign Sandbox.", status: "Scheduled", statusColor: "gray", date: "Jun 12", priority: "Normal", owner: "Amb. Hayes", dep: "Legal AP" },
-    { id: 4, title: "Audit Economic Shock Logs", desc: "Compile post-simulation analytics for the finance subsystem.", status: "Scheduled", statusColor: "gray", date: "Jun 14", priority: "Normal", owner: "Treasury", dep: "Econ-Sim" }
-  ];
+  if (loading || !data) {
+    return <div className="text-white text-center p-20 font-mono animate-pulse">Synchronizing Executive Briefing...</div>;
+  }
 
-  const meetings = [
-    { id: 1, color: PALETTE.sky, title: "Crisis Protocol Review", time: "09:00 - 10:30", participants: 4, priority: "High" },
-    { id: 2, color: PALETTE.purple, title: "Synthetic Population Beta", time: "11:00 - 12:00", participants: 2, priority: "Normal" },
-    { id: 3, color: PALETTE.orange, title: "Emergency Powers Brief", time: "14:00 - 15:30", participants: 6, priority: "Critical" },
-  ];
+  const filteredTasks = data.tasks.filter((t: any) => activeFilters.length === 0 || activeFilters.includes(t.priority));
+  const filteredMeetings = data.meetings.filter((m: any) => activeFilters.length === 0 || activeFilters.includes(m.priority));
 
-  const filteredTasks = tasks.filter(t => activeFilters.length === 0 || activeFilters.includes(t.priority));
-  const filteredMeetings = meetings.filter(m => activeFilters.length === 0 || activeFilters.includes(m.priority));
-
-  const multiSelectFilters = ['Critical', 'High', 'Normal'];
+  const multiSelectFilters = ['CRITICAL', 'HIGH', 'NORMAL', 'LOW', 'MEDIUM'];
   const toggleFilter = (f: string) => {
      setActiveFilters(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
   };
@@ -118,10 +131,10 @@ export function ExecutiveBriefing() {
 
       {/* Row 1: Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Directives Initialized" value={getStat(cycle === 'Quarterly View' ? 128 : 41)} change="+8" changeDesc="vs prior 30 cycles" type="new" accent={PALETTE.sky} />
-        <StatCard title="Resolved Stabilization loops" value={getStat(cycle === 'Quarterly View' ? 54 : 16)} change="+3" changeDesc="vs prior 30 cycles" type="new" accent={PALETTE.purple} />
-        <StatCard title="Decryption Recalibration Rate" value="23%" change="+0" changeDesc="constant value" type="neutral" accent={PALETTE.orange} />
-        <StatCard title="Unscheduled Interrupt Vectors" value={getStat(cycle === 'Quarterly View' ? 192 : 51)} change="+2" changeDesc="vs prior 30 cycles" type="new" accent={PALETTE.purple} />
+        <StatCard title="Total Directives Initialized" value={getStat(data.totalDirectives)} change="+8" changeDesc="vs prior 30 cycles" type="new" accent={PALETTE.sky} />
+        <StatCard title="Resolved Stabilization loops" value={getStat(data.resolvedLoops)} change="+3" changeDesc="vs prior 30 cycles" type="new" accent={PALETTE.purple} />
+        <StatCard title="Decryption Recalibration Rate" value={data.recalibrationRate} change="+0" changeDesc="constant value" type="neutral" accent={PALETTE.orange} />
+        <StatCard title="Unscheduled Interrupt Vectors" value={getStat(data.interruptVectors)} change="+2" changeDesc="vs prior 30 cycles" type="new" accent={PALETTE.purple} />
       </div>
 
       {/* Row 2: Meetings & Breakdown */}
@@ -154,7 +167,7 @@ export function ExecutiveBriefing() {
            </div>
            
            <div className="space-y-4 flex-1">
-             {filteredMeetings.map(m => (
+             {filteredMeetings.map((m: any) => (
                 <MeetingItem key={m.id} color={m.color} title={m.title} time={m.time} participants={m.participants} onClick={() => setActiveModal('schedule')} />
              ))}
              {filteredMeetings.length === 0 && <div className="text-gray-500 text-xs text-center mt-8">No scheduled alignments for this filter.</div>}
@@ -180,7 +193,7 @@ export function ExecutiveBriefing() {
            </div>
            
            <div className="space-y-3">
-              {filteredTasks.map(t => (
+              {filteredTasks.map((t: any) => (
                 <PriorityTask 
                   key={t.id}
                   title={t.title}
@@ -248,62 +261,76 @@ export function ExecutiveBriefing() {
                              <span>Operator Level 2</span>
                              <select className="bg-slate-900 rounded p-1 text-xs outline-none border border-slate-700"><option>Restricted</option><option>Full Access</option></select>
                            </div>
+                           <button className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1 mt-2 cursor-pointer"><UserPlus size={12}/> Invite New User</button>
                          </div>
                        </div>
+                       
                        <div className="space-y-4">
-                         <h3 className="font-bold text-white border-b border-white/10 pb-2">Security, API & Environment</h3>
+                         <h3 className="font-bold text-white border-b border-white/10 pb-2">Data Refresh Intervals</h3>
                          <div className="space-y-3">
-                           <div className="flex justify-between items-center bg-slate-900/50 p-3 rounded border border-slate-800">
-                             <span>Audit Logging</span>
-                             <input type="checkbox" defaultChecked className="accent-pink-500" />
+                           <div>
+                             <div className="flex justify-between text-xs text-gray-400 mb-1"><span>Matrix Feed</span><span>15s</span></div>
+                             <input type="range" className="w-full accent-sky-500" min="5" max="60" defaultValue="15" />
                            </div>
-                           <div className="flex justify-between items-center bg-slate-900/50 p-3 rounded border border-slate-800">
-                             <span>API Key Horizon</span>
-                             <button className="text-xs bg-slate-800 px-2 py-1 rounded hover:bg-slate-700 border border-slate-700">Rotate Keys</button>
+                           <div>
+                             <div className="flex justify-between text-xs text-gray-400 mb-1"><span>Strategic Sync</span><span>1hr</span></div>
+                             <input type="range" className="w-full accent-purple-500" min="1" max="24" defaultValue="1" />
                            </div>
+                           <button onClick={() => handleAction('refresh-sync')} disabled={actionState.status === 'loading'} className="text-purple-400 hover:text-purple-300 text-xs flex items-center gap-1 mt-2 cursor-pointer disabled:opacity-50">
+                             <RefreshCw size={12} className={actionState.id === 'refresh-sync' && actionState.status === 'loading' ? 'animate-spin' : ''}/> Force Manual Sync
+                           </button>
                          </div>
                        </div>
                     </div>
-                    <div className="flex gap-4 pt-6 border-t border-white/10 mt-6 justify-end">
-                       <button onClick={() => { 
-                         setAdminSaving(true); 
-                         setTimeout(() => { setAdminSaving(false); setActiveModal(null); }, 1000); 
-                       }} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all text-xs cursor-pointer disabled:opacity-50 flex items-center justify-center">
-                         {adminSaving ? <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin" /> : 'Save Setup'}
-                       </button>
+                    
+                    <div className="pt-6 mt-6 border-t border-white/10 flex justify-end gap-3">
+                      <button onClick={() => setActiveModal(null)} className="px-6 py-2 border border-slate-700 hover:bg-slate-800 rounded-xl font-bold text-xs cursor-pointer text-white">Cancel</button>
+                      <button onClick={() => { setAdminSaving(true); setTimeout(() => { setAdminSaving(false); setActiveModal(null); handleAction('admin-saved'); }, 1000); }} className="px-6 py-2 bg-sky-600 hover:bg-sky-500 rounded-xl font-bold text-xs cursor-pointer text-white flex items-center gap-2">
+                        {adminSaving ? <RefreshCw size={12} className="animate-spin" /> : 'Save Configuration'}
+                      </button>
                     </div>
                  </div>
                )}
 
                {activeModal === 'export' && (
-                 <div className="space-y-5">
-                   <p className="text-xs text-gray-400 mb-4">Select format to export current dashboard state, filters, and selected records.</p>
-                   {['CSV Structure', 'XLSX Spreadsheet', 'JSON Payload', 'PDF Briefing'].map(format => (
-                     <button key={format} onClick={() => {
-                        handleAction('export-done');
-                        setActiveModal(null);
-                     }} className="w-full py-3 bg-slate-900 border border-slate-800 hover:border-sky-500/50 hover:bg-sky-900/20 text-gray-200 rounded-xl font-semibold text-sm transition-all cursor-pointer flex items-center justify-between px-4">
-                       <span>{format}</span>
-                       <Download size={14} className="text-sky-500" />
-                     </button>
-                   ))}
+                 <div className="space-y-4">
+                    <p className="text-sm text-gray-400 mb-4">Select export format for current dashboard state. This action is logged.</p>
+                    {['CSV Summary', 'JSON Raw Data', 'PDF Executive Report'].map(fmt => (
+                      <button key={fmt} onClick={() => { handleAction('exported'); setActiveModal(null); }} className="w-full flex justify-between items-center px-4 py-3 bg-slate-900 border border-slate-800 hover:border-slate-600 rounded-xl text-gray-300 hover:text-white transition-colors cursor-pointer group">
+                        <span className="font-bold text-sm">{fmt}</span>
+                        <Download size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: PALETTE.sky }} />
+                      </button>
+                    ))}
                  </div>
                )}
 
                {activeModal === 'schedule' && (
                  <div className="space-y-6">
-                   <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 text-sm text-gray-300">
-                     There is an upcoming meeting. Ensure strategic context is pre-loaded before entry.
-                   </div>
-                   <button 
-                     onClick={() => {
+                    <div className="p-4 bg-slate-900 rounded-xl border border-slate-800">
+                       <div className="text-sm font-bold text-white mb-2">Protocol Review Sync</div>
+                       <div className="text-xs text-gray-400 flex items-center gap-2"><Clock size={12} /> Today, 14:00Z</div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="text-xs font-bold text-gray-500 uppercase">Notification Options</div>
+                      <label className="flex items-center gap-3 text-sm text-gray-300 cursor-pointer p-2 hover:bg-white/5 rounded">
+                        <input type="checkbox" defaultChecked className="accent-sky-500 w-4 h-4 rounded" /> Push to Mobile
+                      </label>
+                      <label className="flex items-center gap-3 text-sm text-gray-300 cursor-pointer p-2 hover:bg-white/5 rounded">
+                        <input type="checkbox" defaultChecked className="accent-sky-500 w-4 h-4 rounded" /> Email Executive Summary
+                      </label>
+                      <label className="flex items-center gap-3 text-sm text-gray-300 cursor-pointer p-2 hover:bg-white/5 rounded">
+                        <input type="checkbox" className="accent-sky-500 w-4 h-4 rounded" /> Sync to external Calendar
+                      </label>
+                    </div>
+                    <button 
+                      onClick={() => {
                         handleAction('acknowledged');
                         setActiveModal(null);
-                     }}
-                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold tracking-widest uppercase py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
-                   >
-                     <CheckCircle2 size={16} /> Acknowledge
-                   </button>
+                      }}
+                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold tracking-widest uppercase py-3 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+                    >
+                      <CheckCircle2 size={16} /> Acknowledge
+                    </button>
                  </div>
                )}
 

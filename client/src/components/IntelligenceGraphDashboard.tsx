@@ -28,10 +28,74 @@ export function IntelligenceGraphDashboard({ initialTab = 'networks' }: Intellig
   }, [initialTab]);
   const [actionState, setActionState] = useState<{ id: string; status: 'idle' | 'loading' | 'success', message?: string}>( { id: '', status: 'idle' } );
 
+  const [data, setData] = useState<any>(null);
+  let ws: WebSocket;
+
+  const fetchData = async () => {
+    try {
+      const query = `
+        query {
+          getIntelligenceData {
+            nodes { id type baseColor connections x y size classStr dot pulse }
+            edges { source target color width dashed opacity pulse }
+            topologyStats { totalNodes activeEdges densityScore centralityDrift }
+            simulations {
+              id trigger
+              mitigations { label val pct }
+              steps { time title desc color isWarning isFinal }
+            }
+          }
+        }
+      `;
+      const res = await fetch('http://localhost:4000/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      });
+      const json = await res.json();
+      if (json.data?.getIntelligenceData) {
+        setData(json.data.getIntelligenceData);
+      }
+    } catch (e) {
+      console.error("Error fetching intelligence data:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    ws = new WebSocket(`ws://${window.location.hostname}:4000/ws/intelligence`);
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'INTELLIGENCE_DATA_UPDATED') {
+          setData(msg.data);
+        }
+      } catch (err) {}
+    };
+
+    return () => ws.close();
+  }, []);
+
   const handleAction = async (id: string, customMessage?: string) => {
     setActionState({ id, status: 'loading', message: customMessage });
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      if (id === 'brain') {
+        const mutation = `
+          mutation {
+            simulateIntelligenceUpdate {
+              nodes { id }
+            }
+          }
+        `;
+        await fetch('http://localhost:4000/graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: mutation })
+        });
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
       setActionState({ id, status: 'success', message: customMessage });
       setTimeout(() => setActionState({ id: '', status: 'idle', message: undefined }), 2000);
     } catch {
@@ -69,7 +133,7 @@ export function IntelligenceGraphDashboard({ initialTab = 'networks' }: Intellig
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <NetworksView handleAction={handleAction} actionState={actionState} layoutTrigger={layoutTrigger} />
+            <NetworksView handleAction={handleAction} actionState={actionState} layoutTrigger={layoutTrigger} data={data} />
           </motion.div>
         )}
         {activeTab === 'cascades' && (
@@ -81,7 +145,7 @@ export function IntelligenceGraphDashboard({ initialTab = 'networks' }: Intellig
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
-            <CascadesView handleAction={handleAction} actionState={actionState} layoutTrigger={layoutTrigger} />
+            <CascadesView handleAction={handleAction} actionState={actionState} layoutTrigger={layoutTrigger} data={data} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -111,12 +175,18 @@ const INITIAL_EDGES = [
   { source: 'Infra Core', target: 'Treaty Network', color: PALETTE.slate, width: 1, dashed: true, opacity: 0.3 }
 ];
 
-function NetworksView({ handleAction, actionState, layoutTrigger }: any) {
+function NetworksView({ handleAction, actionState, layoutTrigger, data }: any) {
   const [scale, setScale] = useState(1);
   const [selectedNode, setSelectedNode] = useState<{ id: string, type: string, connections: number } | null>(null);
   const [query, setQuery] = useState({ entity: '', relationship: '' });
-  const [nodes, setNodes] = useState(INITIAL_NODES);
+  const [nodes, setNodes] = useState<any[]>([]);
   const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (data?.nodes) {
+      setNodes(data.nodes);
+    }
+  }, [data?.nodes]);
 
   useEffect(() => {
     if (layoutTrigger > 0) {
@@ -174,9 +244,9 @@ function NetworksView({ handleAction, actionState, layoutTrigger }: any) {
              
              {/* Dynamic SVG connection lines */}
              <svg className="absolute inset-0 w-full h-full -z-10 pointer-events-none">
-               {INITIAL_EDGES.map((edge, i) => {
-                  const sourceNode = nodes.find(n => n.id === edge.source);
-                  const targetNode = nodes.find(n => n.id === edge.target);
+               {(data?.edges || []).map((edge: any, i: number) => {
+                  const sourceNode = nodes.find((n: any) => n.id === edge.source);
+                  const targetNode = nodes.find((n: any) => n.id === edge.target);
                   if (!sourceNode || !targetNode) return null;
                   
                   const isSourceHighlighted = highlightedNodes.size > 0 && highlightedNodes.has(sourceNode.id);
@@ -269,19 +339,19 @@ function NetworksView({ handleAction, actionState, layoutTrigger }: any) {
            <div className="space-y-3">
              <div className="flex justify-between items-center pb-2 border-b border-white/5">
                 <span className="text-xs text-gray-300">Total Nodes</span>
-                <span className="font-mono text-white text-sm font-bold">14,284</span>
+                <span className="font-mono text-white text-sm font-bold">{data?.topologyStats?.totalNodes || "..."}</span>
              </div>
              <div className="flex justify-between items-center pb-2 border-b border-white/5">
                 <span className="text-xs text-gray-300">Active Edges</span>
-                <span className="font-mono text-indigo-300 text-sm font-bold">39,102</span>
+                <span className="font-mono text-indigo-300 text-sm font-bold">{data?.topologyStats?.activeEdges || "..."}</span>
              </div>
              <div className="flex justify-between items-center pb-2 border-b border-white/5">
                 <span className="text-xs text-gray-300">Density Score</span>
-                <span className="font-mono text-white text-sm">0.884</span>
+                <span className="font-mono text-white text-sm">{data?.topologyStats?.densityScore || "..."}</span>
              </div>
              <div className="flex justify-between items-center pb-2">
                 <span className="text-xs text-gray-300">Centrality Drift</span>
-                <span className="font-mono text-emerald-400 text-sm">-1.2%</span>
+                <span className="font-mono text-emerald-400 text-sm">{data?.topologyStats?.centralityDrift || "..."}</span>
              </div>
            </div>
          </div>
@@ -328,46 +398,20 @@ function NetworksView({ handleAction, actionState, layoutTrigger }: any) {
   );
 }
 
-function CascadesView({ handleAction, actionState, layoutTrigger }: any) {
-  const [trigger, setTrigger] = useState('Port Closure');
-  const [scenario, setScenario] = useState('port');
+function CascadesView({ handleAction, actionState, layoutTrigger, data }: any) {
+  const [trigger, setTrigger] = useState('');
+  const [scenario, setScenario] = useState('');
   const [simPlaying, setSimPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
-  const SIMULATIONS: any = {
-    'port': {
-      trigger: 'Port Closure',
-      mitigations: [
-        { label: 'Strategic Reserves', val: 'Low', pct: 30 },
-        { label: 'Alternative Routes', val: 'Constrained', pct: 40 },
-        { label: 'Domestic Supply', val: '30%', pct: 30 }
-      ],
-      steps: [
-        { time: "T+0 Days", title: "Port Closure", desc: "Critical maritime logistics hub ceases operations due to sudden catalyst.", color: "orange" },
-        { time: "T+4 Days", title: "Trade Delay", desc: "Vessels stalled in holding patterns. Import/export timelines derailed.", color: "blue" },
-        { time: "T+12 Days", title: "Food Prices Rise", desc: "Agri-bulk imports halt. Supermarket hoarding behavior spikes retail costs.", color: "amber", isWarning: true },
-        { time: "T+25 Days", title: "Public Dissatisfaction", desc: "Inflation combined with visible scarcity erodes trust. Protests begin.", color: "rose", isWarning: true },
-        { time: "T+45 Days", title: "Political Instability", desc: "Government faces severe pressure, potential votes of no confidence.", color: "rose", isFinal: true }
-      ]
-    },
-    'cyber': {
-      trigger: 'Grid Cyberattack',
-      mitigations: [
-        { label: 'Redundant Power', val: 'Medium', pct: 50 },
-        { label: 'Cyber Defense', val: 'Active', pct: 80 },
-        { label: 'Backups', val: 'Segregated', pct: 90 }
-      ],
-      steps: [
-        { time: "T+0 Sec", title: "Grid Cyberattack", desc: "Malware payload detonated internally within regional energy substations.", color: "orange" },
-        { time: "T+2 Hrs", title: "Rolling Blackouts", desc: "Automated load shedding triggers cascade failures across three counties.", color: "blue" },
-        { time: "T+1 Day", title: "Comms Degradation", desc: "Cellular backup batteries fail. Internet routing loses 40% capacity.", color: "amber", isWarning: true },
-        { time: "T+4 Days", title: "Supply Chain Halt", desc: "Logistics freeze due to digital inventory lockouts and fuel pump failures.", color: "rose", isWarning: true },
-        { time: "T+7 Days", title: "Economic Contagion", desc: "Immediate market slump. GDP forecast revised down 1.2%.", color: "rose", isFinal: true }
-      ]
-    }
-  };
+  const activeSim = (data?.simulations || []).find((s: any) => s.id === scenario) || (data?.simulations || [])[0];
 
-  const activeSim = SIMULATIONS[scenario];
+  useEffect(() => {
+    if (activeSim && !scenario) {
+      setScenario(activeSim.id);
+      setTrigger(activeSim.trigger);
+    }
+  }, [activeSim, scenario]);
 
   React.useEffect(() => {
     let interval: any;
@@ -382,8 +426,11 @@ function CascadesView({ handleAction, actionState, layoutTrigger }: any) {
   }, [simPlaying, currentStep, activeSim]);
 
   const handleScenarioChange = (e: any) => {
+    const selected = (data?.simulations || []).find((s: any) => s.id === e.target.value);
     setScenario(e.target.value);
-    setTrigger(SIMULATIONS[e.target.value].trigger);
+    if (selected) {
+      setTrigger(selected.trigger);
+    }
     setCurrentStep(0);
     setSimPlaying(false);
   };
@@ -415,8 +462,9 @@ function CascadesView({ handleAction, actionState, layoutTrigger }: any) {
            <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl">
              <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-3 block">Scenario Library</label>
              <select value={scenario} onChange={handleScenarioChange} className="w-full bg-[#030712] border border-slate-700 text-white rounded p-3 text-xs mb-4 outline-none cursor-pointer">
-               <option value="port">Maritime Port Closure (Logistics)</option>
-               <option value="cyber">Grid Cyberattack (Infrastructure)</option>
+               {(data?.simulations || []).map((s: any) => (
+                 <option key={s.id} value={s.id}>{s.id.toUpperCase()} - {s.trigger}</option>
+               ))}
              </select>
              
              <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-3 block">Trigger Event</label>
@@ -431,7 +479,7 @@ function CascadesView({ handleAction, actionState, layoutTrigger }: any) {
            <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl">
              <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest mb-3 block">Mitigation Variables</label>
              <div className="space-y-4">
-                {activeSim.mitigations.map((m: any, i: number) => (
+                {(activeSim?.mitigations || []).map((m: any, i: number) => (
                   <Slider key={i} label={m.label} val={m.val} pct={m.pct} />
                 ))}
              </div>
@@ -462,7 +510,7 @@ function CascadesView({ handleAction, actionState, layoutTrigger }: any) {
          <div className="overflow-y-auto pr-2 scrollbar-none flex-1 pb-10">
            <div className="relative space-y-4 pl-4 before:absolute before:inset-y-4 before:left-[19px] before:w-px before:bg-slate-800">
               <AnimatePresence>
-                {activeSim.steps.slice(0, currentStep).map((step: any, idx: number) => (
+                {(activeSim?.steps || []).slice(0, currentStep).map((step: any, idx: number) => (
                   <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
                     <CascadeStep 
                        step={idx + 1}

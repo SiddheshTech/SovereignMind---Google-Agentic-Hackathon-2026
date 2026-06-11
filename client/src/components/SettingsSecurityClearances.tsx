@@ -1,59 +1,93 @@
-import React, { useState } from 'react';
-import { Shield, Search, MoreVertical, ShieldAlert, Lock, Fingerprint, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Shield, Search, ShieldAlert, Lock, Fingerprint, AlertTriangle, CheckCircle2, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { fetchSecurityClearances, updateSecurityClearance as apiUpdateClearance, fetchSystemSettings, saveSystemSettings } from '../lib/settingsApi';
+
+type Clearance = {
+  id: string;
+  name: string;
+  serviceId: string;
+  level: string;
+  status: string;
+  expiry: string;
+};
+
+const LEVELS = ['Public', 'Confidential', 'Secret', 'Top Secret', 'Quantum Level 1', 'Quantum Level 2', 'Quantum Level 3', 'Quantum Level 4'];
+const departments = ['Intelligence', 'Procurement', 'Operations', 'Cyber', 'Logistics', 'Research'];
+const permissions = ['Read', 'Write', 'Execute', 'Override', 'Nuclear Access'];
+
+const DEFAULT_MATRIX: Record<string, Record<string, boolean>> = {
+  Intelligence: { Read: true, Write: true, Execute: false, Override: false, 'Nuclear Access': false },
+  Procurement: { Read: true, Write: true, Execute: true, Override: false, 'Nuclear Access': false },
+  Operations: { Read: true, Write: true, Execute: true, Override: true, 'Nuclear Access': false },
+  Cyber: { Read: true, Write: true, Execute: true, Override: true, 'Nuclear Access': false },
+  Logistics: { Read: true, Write: false, Execute: false, Override: false, 'Nuclear Access': false },
+  Research: { Read: true, Write: true, Execute: false, Override: false, 'Nuclear Access': false },
+};
 
 export function SettingsSecurityClearances({ addToast }: { addToast: (msg: string, type?: 'success' | 'warning' | 'error' | 'info') => void }) {
-  const [clearances, setClearances] = useState([
-    { id: 1, name: 'Clara Oswald', serviceId: 'OPR-9481-B', level: 'Quantum Level 4', status: 'Active', expiry: '2027-11-04' },
-    { id: 2, name: 'David Singh', serviceId: 'SEC-1120-X', level: 'Top Secret', status: 'Active', expiry: '2026-08-12' },
-    { id: 3, name: 'Elena Rostova', serviceId: 'LOG-3301-A', level: 'Secret', status: 'Suspended', expiry: '2025-12-01' },
-    { id: 4, name: 'Marcus Thorne', serviceId: 'CYB-9988-Q', level: 'Quantum Level 2', status: 'Active', expiry: '2028-01-15' },
-  ]);
-
-  const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>({
-    Intelligence: { Read: true, Write: true, Execute: false, Override: false, Nuclear: false },
-    Procurement: { Read: true, Write: true, Execute: true, Override: false, Nuclear: false },
-    Operations: { Read: true, Write: true, Execute: true, Override: true, Nuclear: false },
-    Cyber: { Read: true, Write: true, Execute: true, Override: true, Nuclear: false },
-    Logistics: { Read: true, Write: false, Execute: false, Override: false, Nuclear: false },
-    Research: { Read: true, Write: true, Execute: false, Override: false, Nuclear: false },
-  });
-
+  const [clearances, setClearances] = useState<Clearance[]>([]);
+  const [matrix, setMatrix] = useState<Record<string, Record<string, boolean>>>(DEFAULT_MATRIX);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState<false | 'freeze' | 'revoke' | 'audit'>(false);
-  const [biometricStep, setBiometricStep] = useState(0); // 0: initial, 1: scanning, 2: success
+  const [biometricStep, setBiometricStep] = useState(0);
 
-  const departments = ['Intelligence', 'Procurement', 'Operations', 'Cyber', 'Logistics', 'Research'];
-  const permissions = ['Read', 'Write', 'Execute', 'Override', 'Nuclear Access'];
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [cls, settings] = await Promise.all([
+        fetchSecurityClearances(),
+        fetchSystemSettings(),
+      ]);
+      setClearances(cls || []);
+      try {
+        const mx = JSON.parse(settings.clearanceMatrixJson || '{}');
+        if (Object.keys(mx).length > 0) setMatrix(mx);
+      } catch (_) {}
+    } catch (err: any) {
+      addToast('Failed to load security clearances.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
 
-  const handleAction = (id: number, action: string) => {
-    const levels = ['Public', 'Confidential', 'Secret', 'Top Secret', 'Quantum Level 1', 'Quantum Level 2', 'Quantum Level 3', 'Quantum Level 4'];
-    setClearances(prev => prev.map(c => {
-      if (c.id === id) {
-        if (action === 'Suspend') return { ...c, status: 'Suspended' };
-        if (action === 'Revoke') return { ...c, status: 'Revoked' };
-        if (action === 'Promote') {
-          const idx = levels.indexOf(c.level);
-          return { ...c, level: levels[Math.min(levels.length - 1, idx + 1)] };
-        }
-        if (action === 'Demote') {
-          const idx = levels.indexOf(c.level);
-          return { ...c, level: levels[Math.max(0, idx - 1)] };
-        }
-      }
-      return c;
-    }));
-    addToast(`Operator ${action.toLowerCase()} action successful.`, 'success');
+  useEffect(() => { load(); }, [load]);
+
+  const handleAction = async (id: string, action: string) => {
+    setActionLoading(id + action);
+    try {
+      const levelIdx = LEVELS.indexOf(clearances.find(c => c.id === id)?.level || '');
+      let newLevel: string | undefined;
+      let newStatus: string | undefined;
+
+      if (action === 'Suspend') newStatus = 'Suspended';
+      else if (action === 'Revoke') newStatus = 'Revoked';
+      else if (action === 'Promote') newLevel = LEVELS[Math.min(LEVELS.length - 1, levelIdx + 1)];
+      else if (action === 'Demote') newLevel = LEVELS[Math.max(0, levelIdx - 1)];
+
+      const updated = await apiUpdateClearance(id, newLevel, newStatus);
+      setClearances(prev => prev.map(c => c.id === id ? { ...c, level: updated.level, status: updated.status } : c));
+      addToast(`Operator ${action.toLowerCase()} action successful.`, 'success');
+    } catch (err: any) {
+      addToast('Action failed: ' + err.message, 'error');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleMatrixChange = (dept: string, perm: string) => {
-    setMatrix(prev => ({
-      ...prev,
-      [dept]: {
-        ...prev[dept],
-        [perm]: !prev[dept][perm]
-      }
-    }));
+  const handleMatrixChange = async (dept: string, perm: string) => {
+    const updated = {
+      ...matrix,
+      [dept]: { ...matrix[dept], [perm]: !matrix[dept][perm] }
+    };
+    setMatrix(updated);
+    try {
+      await saveSystemSettings({ clearanceMatrixJson: JSON.stringify(updated) });
+    } catch (err: any) {
+      addToast('Matrix save failed.', 'error');
+    }
   };
 
   const triggerEmergency = (type: 'freeze' | 'revoke' | 'audit') => {
@@ -61,19 +95,30 @@ export function SettingsSecurityClearances({ addToast }: { addToast: (msg: strin
     setBiometricStep(0);
   };
 
-  const confirmEmergency = () => {
+  const confirmEmergency = async () => {
     setBiometricStep(1);
-    setTimeout(() => {
+    setTimeout(async () => {
       setBiometricStep(2);
-      setTimeout(() => {
-        if (showModal === 'freeze') {
-          setClearances(prev => prev.map(c => ({ ...c, status: 'Suspended' })));
-          addToast('All clearances frozen.', 'error');
-        } else if (showModal === 'revoke') {
-          setClearances(prev => prev.map(c => ({ ...c, status: 'Revoked' })));
-          addToast('All temporary access revoked.', 'error');
-        } else {
-          addToast('Global access audit initiated.', 'info');
+      setTimeout(async () => {
+        try {
+          if (showModal === 'freeze') {
+            // Update all to Suspended
+            for (const c of clearances) {
+              if (c.status === 'Active') await apiUpdateClearance(c.id, undefined, 'Suspended');
+            }
+            setClearances(prev => prev.map(c => ({ ...c, status: 'Suspended' })));
+            addToast('All clearances frozen.', 'error');
+          } else if (showModal === 'revoke') {
+            for (const c of clearances) {
+              await apiUpdateClearance(c.id, undefined, 'Revoked');
+            }
+            setClearances(prev => prev.map(c => ({ ...c, status: 'Revoked' })));
+            addToast('All temporary access revoked.', 'error');
+          } else {
+            addToast('Global access audit initiated.', 'info');
+          }
+        } catch (err: any) {
+          addToast('Emergency action failed.', 'error');
         }
         setShowModal(false);
       }, 1000);
@@ -88,6 +133,7 @@ export function SettingsSecurityClearances({ addToast }: { addToast: (msg: strin
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
           <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
             <Shield size={16} className="text-emerald-400" /> Active Clearances
+            {loading && <Loader2 size={14} className="animate-spin text-gray-400" />}
           </h3>
           <div className="relative w-full md:w-auto">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -130,14 +176,19 @@ export function SettingsSecurityClearances({ addToast }: { addToast: (msg: strin
                   <td className="px-6 py-4 font-mono text-gray-500">{c.expiry}</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 flex-wrap">
-                       <button onClick={() => handleAction(c.id, 'Promote')} className="px-2 py-1 bg-slate-800 hover:bg-emerald-900/50 text-gray-400 hover:text-emerald-400 rounded text-[10px] uppercase font-bold transition-colors">Promote</button>
-                       <button onClick={() => handleAction(c.id, 'Demote')} className="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded text-[10px] uppercase font-bold transition-colors">Demote</button>
-                       <button onClick={() => handleAction(c.id, 'Suspend')} className="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded text-[10px] uppercase font-bold transition-colors">Suspend</button>
-                       <button onClick={() => handleAction(c.id, 'Revoke')} className="px-2 py-1 bg-slate-800 hover:bg-rose-900/50 text-gray-400 hover:text-rose-400 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>
+                       <button disabled={!!actionLoading} onClick={() => handleAction(c.id, 'Promote')} className="px-2 py-1 bg-slate-800 hover:bg-emerald-900/50 text-gray-400 hover:text-emerald-400 rounded text-[10px] uppercase font-bold transition-colors disabled:opacity-50">Promote</button>
+                       <button disabled={!!actionLoading} onClick={() => handleAction(c.id, 'Demote')} className="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded text-[10px] uppercase font-bold transition-colors disabled:opacity-50">Demote</button>
+                       <button disabled={!!actionLoading} onClick={() => handleAction(c.id, 'Suspend')} className="px-2 py-1 bg-slate-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded text-[10px] uppercase font-bold transition-colors disabled:opacity-50">Suspend</button>
+                       <button disabled={!!actionLoading} onClick={() => handleAction(c.id, 'Revoke')} className="px-2 py-1 bg-slate-800 hover:bg-rose-900/50 text-gray-400 hover:text-rose-400 rounded text-[10px] uppercase font-bold transition-colors disabled:opacity-50">Revoke</button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {!loading && clearances.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No clearances on record.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -166,13 +217,13 @@ export function SettingsSecurityClearances({ addToast }: { addToast: (msg: strin
                     <td key={perm} className="px-4 py-4 text-center">
                       <button 
                         onClick={() => handleMatrixChange(dept, perm)}
-                        className={`w-5 h-5 rounded flex items-center justify-center transition-colors border ${
-                          matrix[dept][perm] 
+                        className={`w-5 h-5 rounded flex items-center justify-center transition-colors border mx-auto ${
+                          matrix[dept]?.[perm] 
                             ? perm === 'Nuclear Access' ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' 
                             : 'bg-slate-800 border-slate-700 text-transparent'
                         }`}
                       >
-                        <CheckCircle2 size={12} className={matrix[dept][perm] ? 'opacity-100' : 'opacity-0'} />
+                        <CheckCircle2 size={12} className={matrix[dept]?.[perm] ? 'opacity-100' : 'opacity-0'} />
                       </button>
                     </td>
                   ))}

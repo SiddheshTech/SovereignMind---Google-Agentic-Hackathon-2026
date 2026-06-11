@@ -25,10 +25,10 @@ export function DigitalTwinDashboard({ initialTab = 'nation-model' }: DigitalTwi
   }, [initialTab]);
   const [actionState, setActionState] = useState<{ id: string; status: 'idle' | 'loading' | 'success'}>( { id: '', status: 'idle' } );
 
-  const handleAction = async (id: string) => {
+  const handleAction = async (id: string, promiseCb?: () => Promise<void>) => {
     setActionState({ id, status: 'loading' });
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      if (promiseCb) { await promiseCb(); } else { await new Promise(resolve => setTimeout(resolve, 800)); }
       setActionState({ id, status: 'success' });
       setTimeout(() => setActionState({ id: '', status: 'idle' }), 2000);
     } catch {
@@ -104,26 +104,126 @@ export function DigitalTwinDashboard({ initialTab = 'nation-model' }: DigitalTwi
   );
 }
 
+
+const GQL_GET_NATION_MODEL = `
+  query {
+    getNationModelData {
+      economyVal economyTrend societyVal societySubtitle
+      governanceVal governanceSubtitle infrastructureVal infrastructureTrend
+      securityVal securitySubtitle taxationVelocity borderFriction
+      cohesionIndex supplyIntegration volatilityIndex integrityPercentage
+    }
+  }
+`;
+
+const GQL_EXECUTE_SHOCK = `
+  mutation ExecuteShock($shockName: String!) {
+    executeShockScenario(shockName: $shockName) {
+      id
+    }
+  }
+`;
+
+const GQL_GET_DEPENDENCIES = `
+  query {
+    getDependenciesData {
+      nodes { id title status icon }
+      edges { fromId toId status }
+    }
+  }
+`;
+
+const GQL_GENERATE_DEPENDENCIES = `
+  mutation {
+    generateDependenciesData {
+      id
+    }
+  }
+`;
+
+
+const GQL_GET_INFRASTRUCTURE = `
+  query {
+    getInfrastructureData {
+      nodes { id title icon status statusColor load metrics { label val } }
+    }
+  }
+`;
+
+const GQL_SIMULATE_INFRASTRUCTURE_UPDATE = `
+  mutation {
+    simulateInfrastructureUpdate {
+      id
+    }
+  }
+`;
+
+async function graphqlRequest(query: string, variables: any = {}) {
+  const res = await fetch('/api/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables })
+  });
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors[0].message);
+  return json.data;
+}
+
 function NationModelView({ handleAction, actionState }: any) {
-  const [globalParams, setGlobalParams] = React.useState<any>(null);
+  const [model, setModel] = React.useState<any>(null);
+  const [selectedShock, setSelectedShock] = React.useState("Kinetic Impact: Grid Substation");
+  const wsRef = React.useRef<WebSocket | null>(null);
+
+  const fetchModel = async () => {
+    try {
+      const res = await graphqlRequest(GQL_GET_NATION_MODEL);
+      if (res.getNationModelData) {
+        setModel(res.getNationModelData);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   React.useEffect(() => {
-    const handleStorage = () => {
-      const saved = localStorage.getItem('sovereign_global_params');
-      if (saved) setGlobalParams(JSON.parse(saved));
-    };
-    handleStorage();
-    window.addEventListener('storage', handleStorage);
-    const intv = setInterval(handleStorage, 1000);
-    return () => {
-       window.removeEventListener('storage', handleStorage);
-       clearInterval(intv);
+    fetchModel();
+
+    const wsUrl = window.location.protocol === 'https:' 
+      ? `wss://${window.location.host}/ws/nation-model`
+      : `ws://localhost:4000/ws/nation-model`;
+      
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'NATION_MODEL_UPDATED') {
+            setModel(msg.data);
+          }
+        } catch (err) {
+          console.error('WS parsing error', err);
+        }
+      };
+    } catch (err) {
+      console.error('WS Connection error', err);
     }
+    
+    return () => {
+      wsRef.current?.close();
+    };
   }, []);
 
-  const econLevel = globalParams ? globalParams.econResilience : 45;
-  const threatLevel = globalParams ? globalParams.threatSense : 60;
-  const trustLevel = globalParams ? 100 - (globalParams.volatility * 5) : 82;
+  const econLevel = model ? model.taxationVelocity : 45;
+  const threatLevel = model ? (model.borderFriction === 'High' ? 80 : 60) : 60;
+  const trustLevel = model ? model.cohesionIndex : 82;
+
+  const onExecuteShock = async () => {
+    handleAction('shock', async () => {
+      await graphqlRequest(GQL_EXECUTE_SHOCK, { shockName: selectedShock });
+    });
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -153,16 +253,16 @@ function NationModelView({ handleAction, actionState }: any) {
             <p className="text-xs text-indigo-400 font-mono">POP. 8.4M • REGION: PACIFIC NW • NATIONAL DIGITAL TWIN</p>
           </div>
           <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-            <ShieldCheck size={16} /> Integrity: {globalParams ? Math.max(0, 100 - (globalParams.volatility * 2.5)).toFixed(1) : 94.2}%
+            <ShieldCheck size={16} /> Integrity: {model ? model.integrityPercentage.toFixed(1) : '94.2'}%
           </div>
         </div>
 
         <div className="relative z-10 grid grid-cols-2 lg:grid-cols-5 gap-3 mt-auto">
-          <NationStat icon={<Activity size={18} />} title="Economy" val="1.42x" trend="+0.04" />
-          <NationStat icon={<Users size={18} />} title="Society" val="Nominal" subtitle={`Cohesion ${Math.round(trustLevel)}%`} />
-          <NationStat icon={<Shield size={18} />} title="Governance" val="Stable" subtitle="Approval 54%" />
-          <NationStat icon={<Factory size={18} />} title="Infrastructure" val="88%" trend="-2%" />
-          <NationStat icon={<ShieldCheck size={18} />} title="Security" val={`DEFCON ${globalParams ? (globalParams.threatSense > 80 ? '2' : '4') : '4'}`} subtitle={`Active Threats: ${globalParams ? Math.round(globalParams.volatility) : 2}`} />
+          <NationStat icon={<Activity size={18} />} title="Economy" val={model ? model.economyVal : "1.42x"} trend={model ? model.economyTrend : "+0.04"} />
+          <NationStat icon={<Users size={18} />} title="Society" val={model ? model.societyVal : "Nominal"} subtitle={model ? model.societySubtitle : `Cohesion 82%`} />
+          <NationStat icon={<Shield size={18} />} title="Governance" val={model ? model.governanceVal : "Stable"} subtitle={model ? model.governanceSubtitle : "Approval 54%"} />
+          <NationStat icon={<Factory size={18} />} title="Infrastructure" val={model ? model.infrastructureVal : "88%"} trend={model ? model.infrastructureTrend : "-2%"} />
+          <NationStat icon={<ShieldCheck size={18} />} title="Security" val={model ? model.securityVal : "DEFCON 4"} subtitle={model ? model.securitySubtitle : "Active Threats: 2"} />
         </div>
       </div>
 
@@ -173,9 +273,9 @@ function NationModelView({ handleAction, actionState }: any) {
           </h4>
           <div className="space-y-4">
             <ParameterSlider label="Taxation Velocity" val={`${econLevel}%`} level={econLevel} />
-            <ParameterSlider label="Border Friction" val={threatLevel > 60 ? "High" : "Medium"} level={threatLevel} />
+            <ParameterSlider label="Border Friction" val={model ? model.borderFriction : "Medium"} level={threatLevel} />
             <ParameterSlider label="Social Cohesion Index" val={`${Math.round(trustLevel)}`} level={trustLevel} />
-            <ParameterSlider label="Supply Integration" val="Optimal" level={90} />
+            <ParameterSlider label="Supply Integration" val={model ? model.supplyIntegration : "Optimal"} level={model && model.supplyIntegration === 'Critical' ? 30 : 90} />
           </div>
         </div>
 
@@ -187,12 +287,16 @@ function NationModelView({ handleAction, actionState }: any) {
             Run a simulated exogenous shock against the current twin model.
           </p>
           <div className="mt-auto space-y-3">
-            <select className="w-full bg-slate-900 border border-slate-700 text-sm text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500">
+            <select 
+              value={selectedShock} 
+              onChange={(e) => setSelectedShock(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 text-sm text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500"
+            >
               <option>Kinetic Impact: Grid Substation</option>
               <option>Financial: Currency Devaluation</option>
               <option>Biological: Pathogen Variant Delta</option>
             </select>
-            <button onClick={() => handleAction('shock')} disabled={actionState.status === 'loading'} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-500/20 cursor-pointer text-sm disabled:opacity-50">
+            <button onClick={onExecuteShock} disabled={actionState.status === 'loading'} className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-500/20 cursor-pointer text-sm disabled:opacity-50">
               {actionState.status === 'loading' && actionState.id === 'shock' ? 'Executing...' : 'Execute Shock Scenario'}
             </button>
           </div>
@@ -200,10 +304,10 @@ function NationModelView({ handleAction, actionState }: any) {
           <div className="mt-4 pt-4 border-t border-slate-800">
              <div className="flex justify-between items-end mb-2">
                 <span className="text-[10px] text-gray-400 font-mono uppercase tracking-wider">Simulated Volatility Index</span>
-                <span className="text-lg font-bold text-white">{globalParams ? Math.round(globalParams.volatility) : 18}%</span>
+                <span className="text-lg font-bold text-white">{model ? model.volatilityIndex : 18}%</span>
              </div>
              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-               <div className="h-full bg-gradient-to-r from-emerald-500 to-rose-500 transition-all duration-500" style={{ width: `${globalParams ? globalParams.volatility : 18}%` }} />
+               <div className="h-full bg-gradient-to-r from-emerald-500 to-rose-500 transition-all duration-500" style={{ width: `${model ? model.volatilityIndex : 18}%` }} />
              </div>
           </div>
         </div>
@@ -248,14 +352,79 @@ function ParameterSlider({ label, val, level }: { label: string, val: string, le
   );
 }
 
-function DependenciesView() {
+
+const iconMap: Record<string, React.ReactNode> = {
+  zap: <Zap size={16} />,
+  droplets: <Droplets size={16} />,
+  database: <Database size={16} />,
+  factory: <Factory size={16} />,
+  users: <Users size={16} />,
+  shield: <Shield size={16} />,
+  activity: <Activity size={16} />
+};
+
+function DependenciesView({ handleAction, actionState }: any) {
+  const [data, setData] = React.useState<any>(null);
+  const wsRef = React.useRef<WebSocket | null>(null);
+
+  const fetchData = async () => {
+    try {
+      const res = await graphqlRequest(GQL_GET_DEPENDENCIES);
+      if (res.getDependenciesData) setData(res.getDependenciesData);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+
+    const wsUrl = window.location.protocol === 'https:' 
+      ? `wss://${window.location.host}/ws/dependencies`
+      : `ws://localhost:4000/ws/dependencies`;
+      
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'DEPENDENCIES_DATA_UPDATED') {
+            setData(msg.data);
+          }
+        } catch (err) {
+          console.error('WS parsing error', err);
+        }
+      };
+    } catch (err) {
+      console.error('WS Connection error', err);
+    }
+    
+    return () => wsRef.current?.close();
+  }, []);
+
+  const onGenerate = async () => {
+    handleAction('deps', async () => {
+      await graphqlRequest(GQL_GENERATE_DEPENDENCIES);
+    });
+  };
+
+  const nodes = data?.nodes || [];
+  const edges = data?.edges || [];
+
   return (
     <div className="bg-[#030712] border border-slate-800 rounded-3xl p-6 h-[700px] flex flex-col relative overflow-hidden">
       <div className="absolute top-6 left-6 z-10 max-w-sm">
-        <h3 className="text-xl font-bold text-white tracking-tight mb-2">System Dependency Graph</h3>
-        <p className="text-xs text-gray-400 leading-relaxed">
+        <h3 className="text-xl font-bold text-white tracking-tight mb-2 flex items-center justify-between">
+          System Dependency Graph
+        </h3>
+        <p className="text-xs text-gray-400 leading-relaxed mb-4">
           Mapping critical cascading nodes. Highlighted paths indicate high vulnerability to chained failures where one disruption's cascading effects become visible instantly.
         </p>
+        <button onClick={onGenerate} disabled={actionState.status === 'loading'} className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors border border-slate-700 text-xs disabled:opacity-50">
+          {actionState.status === 'loading' && actionState.id === 'deps' ? 'Simulating...' : 'Simulate New Cascade'}
+        </button>
       </div>
 
       <div className="absolute top-6 right-6 z-10 flex flex-col gap-2 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-xl p-4">
@@ -265,39 +434,57 @@ function DependenciesView() {
         <div className="flex items-center gap-3 text-xs text-gray-300"><div className="w-2 h-2 rounded-full bg-rose-500" /> High Vulnerability</div>
       </div>
 
-      {/* Abstract Node Map */}
       <div className="absolute inset-0 flex flex-col items-center justify-center opacity-80 mt-12">
         <div className="relative w-full max-w-4xl h-full ml-20 mt-10">
           
-          {/* Level 1 Core */}
-          <DependencyNode x="50%" y="15%" color="emerald" icon={<Zap size={16} />} title="National Energy Grid" />
-          
-          {/* Level 2 Systems */}
-          <DependencyNode x="50%" y="35%" color="emerald" icon={<Droplets size={16} />} title="Water Infrastructure" />
-          
-          {/* Level 3 Edges */}
-          <DependencyNode x="50%" y="55%" color="amber" icon={<Database size={16} />} title="Agricultural Production" />
-          
-          {/* Level 4 */}
-          <DependencyNode x="50%" y="75%" color="rose" icon={<Factory size={16} />} title="Food Supply Chain" />
+          {nodes.map((n: any, idx: number) => {
+             const yPercent = nodes.length > 1 ? 15 + (idx * (80 / (nodes.length - 1))) : 50;
+             const color = n.status === 'high_vulnerability' ? 'rose' : (n.status === 'strained' ? 'amber' : 'emerald');
+             return (
+               <DependencyNode 
+                 key={n.id} 
+                 x="50%" 
+                 y={`${yPercent}%`} 
+                 color={color as 'emerald'|'amber'|'rose'} 
+                 icon={iconMap[n.icon] || <Zap size={16} />} 
+                 title={n.title} 
+               />
+             )
+          })}
 
-          {/* Level 5 */}
-          <DependencyNode x="50%" y="95%" color="rose" icon={<Users size={16} />} title="Public Stability Index" />
-
-          {/* SVGs rendering connections */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
-             <path d="M 50% 15% L 50% 35%" stroke={PALETTE.emerald} strokeWidth="2" strokeDasharray="4 2" fill="none" className="opacity-80 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
-             <path d="M 50% 35% L 50% 55%" stroke={PALETTE.amber} strokeWidth="2" strokeDasharray="4 2" fill="none" className="opacity-50" />
-             <path d="M 50% 55% L 50% 75%" stroke={PALETTE.rose} strokeWidth="3" fill="none" className="opacity-80 drop-shadow-[0_0_5px_rgba(244,63,94,0.5)] animate-pulse" />
-             <path d="M 50% 75% L 50% 95%" stroke={PALETTE.rose} strokeWidth="3" fill="none" className="opacity-80 drop-shadow-[0_0_5px_rgba(244,63,94,0.5)] animate-pulse" />
+             {edges.map((e: any, idx: number) => {
+                const fromIdx = nodes.findIndex((n: any) => n.id === e.fromId);
+                const toIdx = nodes.findIndex((n: any) => n.id === e.toId);
+                if (fromIdx === -1 || toIdx === -1) return null;
+
+                const y1 = nodes.length > 1 ? 15 + (fromIdx * (80 / (nodes.length - 1))) : 50;
+                const y2 = nodes.length > 1 ? 15 + (toIdx * (80 / (nodes.length - 1))) : 50;
+                
+                let strokeColor = PALETTE.emerald;
+                let strokeWidth = "2";
+                let classes = "opacity-80";
+                
+                if (e.status === 'high_vulnerability') {
+                   strokeColor = PALETTE.rose;
+                   strokeWidth = "3";
+                   classes = "opacity-80 drop-shadow-[0_0_5px_rgba(244,63,94,0.5)] animate-pulse";
+                } else if (e.status === 'strained') {
+                   strokeColor = PALETTE.amber;
+                   classes = "opacity-50";
+                }
+
+                return (
+                  <path key={idx} d={`M 50% ${y1}% L 50% ${y2}%`} stroke={strokeColor} strokeWidth={strokeWidth} strokeDasharray={e.status === 'high_vulnerability' ? "none" : "4 2"} fill="none" className={classes} />
+                )
+             })}
           </svg>
         </div>
       </div>
     </div>
   );
 }
-
-function DependencyNode({ x, y, color, icon, title }: { x: string, y: string, color: 'emerald'|'amber'|'rose', icon: React.ReactNode, title: string }) {
+function DependencyNode({ x, y, color, icon, title }: { key?: React.Key, x: string, y: string, color: 'emerald'|'amber'|'rose', icon: React.ReactNode, title: string }) {
   const bgColors = {
     emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
     amber: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
@@ -318,62 +505,85 @@ function DependencyNode({ x, y, color, icon, title }: { x: string, y: string, co
   );
 }
 
-function InfrastructureView() {
+function InfrastructureView({ handleAction, actionState }: any) {
+  const [data, setData] = React.useState<any>(null);
+  const wsRef = React.useRef<WebSocket | null>(null);
+
+  const fetchData = async () => {
+    try {
+      const res = await graphqlRequest(GQL_GET_INFRASTRUCTURE);
+      if (res.getInfrastructureData) setData(res.getInfrastructureData);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+
+    const wsUrl = window.location.protocol === 'https:' 
+      ? `wss://${window.location.host}/ws/infrastructure`
+      : `ws://localhost:4000/ws/infrastructure`;
+      
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'INFRASTRUCTURE_DATA_UPDATED') {
+            setData(msg.data);
+          }
+        } catch (err) {
+          console.error('WS parsing error', err);
+        }
+      };
+    } catch (err) {
+      console.error('WS Connection error', err);
+    }
+    
+    return () => wsRef.current?.close();
+  }, []);
+
+  const onSimulate = async () => {
+    handleAction('infra', async () => {
+      await graphqlRequest(GQL_SIMULATE_INFRASTRUCTURE_UPDATE);
+    });
+  };
+
+  const nodes = data?.nodes || [];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-      <InfrastructureCard 
-        title="Power Substation Alpha" 
-        icon={<Zap size={20} className="text-amber-400" />}
-        status="Warning"
-        statusColor="amber"
-        load={88}
-        metrics={[
-          { label: 'Voltage Stabilizer', val: 'Active' },
-          { label: 'Current Draw', val: '4.2 GW' },
-          { label: 'Temperature', val: '82°C' },
-        ]}
-      />
-      <InfrastructureCard 
-        title="Aquifer Pump Station 4" 
-        icon={<Droplets size={20} className="text-cyan-400" />}
-        status="Optimal"
-        statusColor="emerald"
-        load={42}
-        metrics={[
-          { label: 'Flow Rate', val: '12k L/s' },
-          { label: 'Filter Integrity', val: '98%' },
-          { label: 'Reservoir Level', val: 'High' },
-        ]}
-      />
-      <InfrastructureCard 
-        title="Core Data Facility (Underground)" 
-        icon={<Server size={20} className="text-indigo-400" />}
-        status="Optimal"
-        statusColor="emerald"
-        load={60}
-        metrics={[
-          { label: 'Uptime', val: '99.999%' },
-          { label: 'Latency', val: '4ms' },
-          { label: 'Coolant Flow', val: 'Nominal' },
-        ]}
-      />
-      <InfrastructureCard 
-        title="Logistics Hub 22" 
-        icon={<Factory size={20} className="text-gray-400" />}
-        status="Offline"
-        statusColor="rose"
-        load={0}
-        metrics={[
-          { label: 'Throughput', val: '0 TPM' },
-          { label: 'Route Blockage', val: 'Detected' },
-          { label: 'Personnel', val: 'Evacuated' },
-        ]}
-      />
+    <div className="w-full flex flex-col gap-6">
+      <div className="flex justify-between items-end">
+        <div>
+          <h3 className="text-xl font-bold text-white tracking-tight">Real-Time Infrastructure</h3>
+          <p className="text-xs text-gray-400 mt-1">Live telemetry from critical national nodes.</p>
+        </div>
+        <button onClick={onSimulate} disabled={actionState.status === 'loading'} className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors border border-slate-700 text-xs disabled:opacity-50">
+          {actionState.status === 'loading' && actionState.id === 'infra' ? 'Updating...' : 'Simulate Live Update'}
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        {nodes.map((n: any) => (
+          <InfrastructureCard 
+            key={n.id}
+            id={n.id}
+            title={n.title} 
+            icon={iconMap[n.icon] || <Server size={20} className="text-indigo-400" />}
+            status={n.status}
+            statusColor={n.statusColor}
+            load={n.load}
+            metrics={n.metrics}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
-function InfrastructureCard({ title, icon, status, statusColor, load, metrics }: any) {
+function InfrastructureCard({ id, title, icon, status, statusColor, load, metrics }: any) {
   const badgeClasses = {
     emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -396,7 +606,7 @@ function InfrastructureCard({ title, icon, status, statusColor, load, metrics }:
           <div>
             <h4 className="text-sm font-bold text-white tracking-wide">{title}</h4>
             <div className="text-[10px] text-gray-500 font-mono mt-1 w-fit border px-1.5 py-0.5 rounded uppercase" style={{ borderColor: PALETTE.borderDark }}>
-              NODE_ID: {Math.random().toString(36).substr(2, 6).toUpperCase()}
+              NODE_ID: {id}
             </div>
           </div>
         </div>

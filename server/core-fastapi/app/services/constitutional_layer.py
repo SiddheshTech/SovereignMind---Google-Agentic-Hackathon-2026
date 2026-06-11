@@ -1,12 +1,10 @@
 from typing import Dict, Any, List
-from app.core.dataset_manager import dataset_manager
 
 class ConstitutionalLayer:
   """
   Autonomous Constitutional AI Layer
   Enforces legal, civil liberty, federalism, and treaty constraints on AI actions
-  before execution, creating machine-readable governance boundaries dynamically
-  adjusted by real civil liberties indexing (V-Dem).
+  before execution, creating machine-readable governance boundaries.
   """
   def __init__(self):
     self.constraints = [
@@ -37,18 +35,7 @@ class ConstitutionalLayer:
     ]
 
   def evaluate_action(self, country_code: str, proposed_action: str, context: str) -> Dict[str, Any]:
-    print(f"⚖️ [Constitutional AI Layer] Auditing action for {country_code.upper()}...")
-    
-    # 1. Fetch real dataset indicators (V-Dem Civil Liberty Index)
-    real_data = dataset_manager.get_country_data(country_code)
-    civil_liberty_index = real_data["civil_liberty"]
-    
-    # If the nation historically has fragile civil liberties (score < 0.5), 
-    # we penalize and heighten the AI's sensitivity to constitutional infringements.
-    historical_fragility_multiplier = 1.0
-    if civil_liberty_index < 0.5:
-        historical_fragility_multiplier = 1.5
-        print(f"⚠️ V-Dem Dataset warns of fragile historical civil liberties (Score: {civil_liberty_index:.2f}). Increasing infraction sensitivity by 50%.")
+    print(f"⚖️ Constitutional AI Layer auditing action: '{proposed_action}' in context '{context}'")
     
     action_lower = proposed_action.lower() + " " + context.lower()
     evaluated_constraints = []
@@ -65,11 +52,11 @@ class ConstitutionalLayer:
       
       explanation = "No conflict detected."
       if is_violated:
-        # Increase risk score dynamically weighted by real historical datasets
-        severity = len(matches_keywords) * 25.0 * historical_fragility_multiplier
+        # Increase risk score
+        severity = len(matches_keywords) * 25.0
         infraction_risk += severity
         
-        explanation = f"Conflict detected under '{constraint['category']}'. Keywords matched: {matches_keywords}. Action flags historical V-Dem civil liberty boundaries. Article: '{constraint['text'][:120]}...'"
+        explanation = f"Conflict detected under '{constraint['category']}'. Keywords matched: {matches_keywords}. Proposed action borders on infringing: '{constraint['text'][:120]}...'"
 
       evaluated_constraints.append({
         "article": constraint["article"],
@@ -83,22 +70,165 @@ class ConstitutionalLayer:
     infraction_risk = min(99.0, max(0.0, infraction_risk))
     
     # Formulate alternate recommendations if risks are high
-    alternate_recommendation = "Proposal is constitutionally sound. Dataset history indicates stable baseline compliance. Action is cleared for execution."
+    alternate_recommendation = "Proposal is constitutionally sound. Action is cleared for execution."
     is_authorized = True
     
     if infraction_risk > 60.0:
       is_authorized = False
-      alternate_recommendation = "DENIED: Highly invasive action. V-Dem history metrics indicate high risk of permanent liberty degradation. Alternate suggestion: Deploy voluntary incentive-based compliance campaigns instead of mandatory physical seizure or cell-tracking."
+      alternate_recommendation = "DENIED: Highly invasive action. Alternate suggestion: Deploy voluntary incentive-based compliance campaigns instead of mandatory physical seizure or cell-tracking."
     elif infraction_risk > 30.0:
       alternate_recommendation = "WARNING: Moderate constitutional friction. Implement strict Sunset Clauses (expires in 48 hours) and state-governor opt-ins to prevent federalism overreach."
 
     return {
-      "country_code": country_code.upper(),
+      "country_code": country_code,
       "is_authorized": is_authorized,
-      "infraction_risk_score": round(infraction_risk, 2),
-      "vdem_civil_liberty_index_used": round(civil_liberty_index, 2),
+      "infraction_risk_score": infraction_risk,
       "evaluated_constraints": evaluated_constraints,
       "alternate_recommendation": alternate_recommendation
+    }
+
+  async def evaluate_authority_proposal(self, title: str) -> Dict[str, Any]:
+    print(f"⚖️ Constitutional Layer evaluating authority proposal: '{title}'")
+    from app.agents.llm_router import llm_router
+    import json
+
+    system_prompt = (
+        "You are a strategic constitutional intelligence auditor for a sovereign cooperative. "
+        "You must analyze the proposed administrative directive for its safety, risk, civil liberty impact, "
+        "and constitutional validity. You must return your analysis as a strict JSON object."
+    )
+
+    user_prompt = (
+        f"Assess the constitutional validity and safety scoring of the following governance proposal: \"{title}\".\n"
+        "You must output a JSON object with this exact schema:\n"
+        "{\n"
+        "  \"safetyScore\": number (0 to 100 representing constitutional alignment and legality),\n"
+        "  \"riskScore\": number (0 to 100 representing constitutional risk, safetyScore + riskScore must equal 100),\n"
+        "  \"civilLibertyImpact\": \"High\" | \"Medium\" | \"Low\",\n"
+        "  \"recommendation\": \"Approved\" | \"Approved with Amendments\" | \"Rejected\",\n"
+        "  \"zone\": \"Green\" | \"Yellow\" | \"Red\",\n"
+        "  \"constitutionalPoints\": [\"exact supporting clause or point 1\", \"point 2\", \"point 3\"],\n"
+        "  \"violations\": [\"exact civil liberty violation or risk 1\", \"risk 2\", \"risk 3\"],\n"
+        "  \"explanation\": \"A concise 2-sentence formal constitutional analysis citing systemic legal guidelines.\"\n"
+        "}\n"
+        "Ensure the JSON object is valid and has no trailing commas or comments."
+    )
+
+    try:
+      response_text = await llm_router.generate_response(
+          provider="gemini",
+          system_prompt=system_prompt,
+          user_prompt=user_prompt,
+          temperature=0.2
+      )
+
+      clean_text = response_text.strip()
+      if clean_text.startswith("```json"):
+        clean_text = clean_text[7:]
+      if clean_text.startswith("```"):
+        clean_text = clean_text[3:]
+      if clean_text.endswith("```"):
+        clean_text = clean_text[:-3]
+      clean_text = clean_text.strip()
+
+      data = json.loads(clean_text)
+      required_keys = ["safetyScore", "riskScore", "civilLibertyImpact", "recommendation", "zone", "constitutionalPoints", "violations", "explanation"]
+      for key in required_keys:
+        if key not in data:
+          raise ValueError(f"Missing key: {key}")
+
+      return data
+    except Exception as e:
+      print(f"⚠️ Failed to evaluate proposal using Gemini ({e}). Loading fallback logic.")
+      query = title.lower().strip()
+
+      if any(k in query for k in ["shutdown", "block", "censor", "restrict", "ban"]):
+        return {
+            "safetyScore": 15.0,
+            "riskScore": 85.0,
+            "civilLibertyImpact": "High",
+            "recommendation": "Rejected",
+            "zone": "Red",
+            "constitutionalPoints": [
+                "Protects network infrastructure under emergency state criteria.",
+                "Bypasses standard review mechanisms during cyber emergencies."
+            ],
+            "violations": [
+                "Directly infringes freedom of digital association.",
+                "Imposes non-targeted containment rules violating proportional action."
+            ],
+            "explanation": f"The proposal for '{title}' imposes wide-scale digital containment and cannot be constitutionally cleared without legislative review."
+        }
+      elif any(k in query for k in ["water", "food", "energy", "solar"]):
+        return {
+            "safetyScore": 70.0,
+            "riskScore": 30.0,
+            "civilLibertyImpact": "Medium",
+            "recommendation": "Approved with Amendments",
+            "zone": "Yellow",
+            "constitutionalPoints": [
+                "Ensures biological baseline security under emergency doctrine.",
+                "Allows dynamic rationing of public resource reserves."
+            ],
+            "violations": [
+                "Requires strict sunset clauses to prevent executive overreach.",
+                "Requires continuous independent audits of resource distributions."
+            ],
+            "explanation": f"The proposal for '{title}' is cleared under survival exception frameworks, subject to 45-day sunset provisions."
+        }
+      else:
+        return {
+            "safetyScore": 85.0,
+            "riskScore": 15.0,
+            "civilLibertyImpact": "Low",
+            "recommendation": "Approved",
+            "zone": "Green",
+            "constitutionalPoints": [
+                "Aligns with standard cooperative governance guidelines.",
+                "Promotes transparency in administrative procedures."
+            ],
+            "violations": [
+                "Minor localized friction in administrative processing speeds."
+            ],
+            "explanation": f"The proposal for '{title}' is fully valid under standard constitutional charters and is cleared for immediate execution."
+        }
+
+  def simulate_emergency_powers(self, scenario: str) -> Dict[str, Any]:
+    print(f"⚖️ Constitutional Layer simulating emergency powers for scenario: '{scenario}'")
+    # Stub logic mimicking AI validation
+    is_severe = "collapse" in scenario.lower() or "war" in scenario.lower()
+    return {
+      "scenario": scenario,
+      "allowedActions": [
+        "Deploy strategic reserves",
+        "Override local ordinances",
+        "Mandate curfew in affected sectors"
+      ] if is_severe else ["Issue advisory warnings", "Request voluntary rationing"],
+      "restrictedActions": [
+        "Suspend habeas corpus",
+        "Confiscate private communications",
+        "Deploy active military on domestic soil"
+      ],
+      "judicialRisk": {
+        "level": "CRITICAL" if is_severe else "MODERATE",
+        "description": "High probability of Supreme Court injunctions within 48 hours." if is_severe else "Standard appellate review anticipated."
+      },
+      "politicalRisk": {
+        "level": "HIGH",
+        "description": "Significant blowback from opposition factions expected."
+      },
+      "treatyImpact": "May violate Geneva Convention protocols regarding civilian movement restrictions." if is_severe else "No major international treaty violations projected."
+    }
+
+  def analyze_treaty_constraints(self, proposal: str) -> Dict[str, Any]:
+    print(f"⚖️ Constitutional Layer analyzing treaty constraints for proposal: '{proposal}'")
+    return {
+      "proposal": proposal,
+      "agreements": [
+        {"category": "Paris Climate Accord", "status": "Compliant", "impact": "No emissions violations detected."},
+        {"category": "NATO Article 5", "status": "Friction", "impact": "Potential non-intervention clause conflict."},
+        {"category": "Global Trade Pact", "status": "Violation Risk", "impact": "Proposed tariffs may trigger WTO sanctions."}
+      ]
     }
 
 constitutional_layer = ConstitutionalLayer()

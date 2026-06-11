@@ -3,11 +3,7 @@ import { Brain, MessageSquare, Terminal, Zap, Bot, Shield, ChevronRight, Setting
 import { motion, AnimatePresence } from 'motion/react';
 
 export function AICopilotDashboard() {
-  const [messages, setMessages] = useState<any[]>([
-    { id: 1, isCustom: true },
-    { id: 2, isCustom: true },
-    { id: 3, isCustom: true }
-  ]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -16,15 +12,44 @@ export function AICopilotDashboard() {
   const [showModelModal, setShowModelModal] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState<string | null>(null);
 
+  const sessionId = "session-12345"; // Static session for MVP
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const fetchSession = async () => {
+    try {
+      const query = `
+        query {
+          getCopilotSession(sessionId: "${sessionId}") {
+            messages { id role content }
+          }
+        }
+      `;
+      const res = await fetch('http://localhost:4000/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      });
+      const json = await res.json();
+      if (json.data?.getCopilotSession) {
+        setMessages(json.data.getCopilotSession.messages);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSession();
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSendMessage = (e?: React.FormEvent | React.KeyboardEvent, btnText?: string) => {
+  const handleSendMessage = async (e?: React.FormEvent | React.KeyboardEvent, btnText?: string) => {
     if (e) e.preventDefault();
     const txt = btnText || inputText.trim();
     if (!txt) return;
@@ -33,19 +58,48 @@ export function AICopilotDashboard() {
     setMessages(prev => [...prev, { id: Date.now(), role: 'user', content: txt }]);
     setIsTyping(true);
 
-    setTimeout(() => {
+    try {
+      const mutation = `
+        mutation {
+          sendCopilotMessage(sessionId: "${sessionId}", prompt: """${txt}""") {
+            id role content
+          }
+        }
+      `;
+      const res = await fetch('http://localhost:4000/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: mutation })
+      });
+      const json = await res.json();
+      if (json.data?.sendCopilotMessage) {
+        setMessages(prev => [...prev, json.data.sendCopilotMessage]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setIsTyping(false);
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        role: 'assistant', 
-        content: `Analysis complete. Based on sovereign parameters, your query regarding "${txt.substring(0, 20)}..." requires deeper inspection. I have flagged it for the command authority.` 
-      }]);
-    }, 1500);
+    }
   };
 
-  const clearSession = () => {
-    setMessages([]);
-    setShowClearConfirm(false);
+  const clearSession = async () => {
+    try {
+      const mutation = `
+        mutation {
+          clearCopilotSession(sessionId: "${sessionId}")
+        }
+      `;
+      await fetch('http://localhost:4000/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: mutation })
+      });
+      setMessages([]);
+      setShowClearConfirm(false);
+      fetchSession(); // to get the initial message back
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -95,79 +149,7 @@ export function AICopilotDashboard() {
               )}
               {messages.map(msg => (
                 <div key={msg.id}>
-                  {msg.isCustom && msg.id === 1 && (
-                    <div className="flex items-start gap-4">
-                       <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                         <Bot size={16} className="text-purple-400" />
-                       </div>
-                       <div className="space-y-2 max-w-2xl">
-                         <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-bold text-purple-300">Executive Advisor</span>
-                            <span className="text-[9px] font-mono text-gray-500">SYSTEM READY</span>
-                         </div>
-                         <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-sm text-gray-300 leading-relaxed shadow-sm">
-                           Initializing SovereignMind interface... Good morning. I have full read-access to the National Digital Twin, Constitutional Intelligence engine, and Global Actor Network. How can I assist you with strategic decisions today?
-                         </div>
-                       </div>
-                    </div>
-                  )}
-
-                  {msg.isCustom && msg.id === 2 && (
-                    <div className="flex items-start gap-4 flex-row-reverse mt-6">
-                       <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-                         <span className="text-xs font-bold text-gray-300">P</span>
-                       </div>
-                       <div className="space-y-2 max-w-2xl">
-                         <div className="flex items-baseline gap-2 justify-end">
-                            <span className="text-[9px] font-mono text-gray-500">HEAD OF STATE INPUT</span>
-                            <span className="text-sm font-bold text-white">President</span>
-                         </div>
-                         <div className="p-4 rounded-2xl bg-pink-600 border border-pink-500 text-sm text-white leading-relaxed shadow-sm">
-                           What are India's top risks over the next 5 years?
-                         </div>
-                       </div>
-                    </div>
-                  )}
-
-                  {msg.isCustom && msg.id === 3 && (
-                    <div className="flex items-start gap-4 mt-6">
-                       <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                         <Bot size={16} className="text-purple-400" />
-                       </div>
-                       <div className="space-y-3 max-w-3xl">
-                         <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-bold text-purple-300">Executive Advisor</span>
-                            <span className="text-[9px] font-mono text-gray-500">REPORT GENERATED IN 1.2s</span>
-                         </div>
-                         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 text-sm text-gray-300 leading-relaxed shadow-sm space-y-4">
-                           <p>Processing via the Sovereign Intelligence Graph. Based on current trajectories, the top 3 systemic risks for India (2026-2031) are:</p>
-                           
-                           <div className="pl-4 border-l-2 border-purple-500/30 space-y-4">
-                             <div>
-                               <span className="text-rose-400 font-semibold block mb-1">1. Water Scarcity Cascade</span>
-                               <span className="text-gray-400">Extreme thermal events and erratic monsoons threatening the agricultural heartland. Could impact 14% of crop yield and displace 10M+ citizens, straining urban infrastructure.</span>
-                             </div>
-                             <div>
-                               <span className="text-amber-400 font-semibold block mb-1">2. Asymmetric Cyber Threats</span>
-                               <span className="text-gray-400">Increasingly sophisticated attacks on grid parity and financial clearing houses from state-sponsored actors, exploiting legacy Tier-3 infrastructure.</span>
-                             </div>
-                             <div>
-                               <span className="text-emerald-400 font-semibold block mb-1">3. Energy Transition Bottlenecks</span>
-                               <span className="text-gray-400">Failure to synthesize battery supply chains fast enough to offset phased-out coal baseload. This presents a high risk of localized grid failures during peak summer loading.</span>
-                             </div>
-                           </div>
-
-                           <div className="pt-4 border-t border-slate-800 flex flex-wrap gap-2">
-                             <button onClick={() => handleSendMessage(undefined, "Which policies improve resilience fastest?")} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-semibold transition-colors cursor-pointer">Which policies improve resilience fastest?</button>
-                             <button onClick={() => handleSendMessage(undefined, "Simulate cyberattack on energy infrastructure")} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-semibold transition-colors cursor-pointer">Simulate cyberattack on energy infrastructure</button>
-                             <button onClick={() => handleSendMessage(undefined, "Compare India & Singapore governance resilience")} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-semibold transition-colors cursor-pointer">Compare India & Singapore governance resilience</button>
-                           </div>
-                         </div>
-                       </div>
-                    </div>
-                  )}
-
-                  {!msg.isCustom && msg.role === 'user' && (
+                  {msg.role === 'user' && (
                     <div className="flex items-start gap-4 flex-row-reverse mt-6">
                        <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
                          <span className="text-xs font-bold text-gray-300">P</span>
@@ -184,19 +166,20 @@ export function AICopilotDashboard() {
                     </div>
                   )}
 
-                  {!msg.isCustom && msg.role === 'assistant' && (
+                  {msg.role === 'assistant' && (
                     <div className="flex items-start gap-4 mt-6">
                        <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
                          <Bot size={16} className="text-purple-400" />
                        </div>
-                       <div className="space-y-2 max-w-2xl">
+                       <div className="space-y-2 max-w-3xl">
                          <div className="flex items-baseline gap-2">
                             <span className="text-sm font-bold text-purple-300">Executive Advisor</span>
                             <span className="text-[9px] font-mono text-gray-500">ANALYSIS COMPLETE</span>
                          </div>
-                         <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-sm text-gray-300 leading-relaxed shadow-sm">
-                           {msg.content}
-                         </div>
+                         <div 
+                           className="p-5 rounded-2xl bg-slate-900 border border-slate-800 text-sm text-gray-300 leading-relaxed shadow-sm space-y-4"
+                           dangerouslySetInnerHTML={{ __html: msg.content }}
+                         />
                        </div>
                     </div>
                   )}

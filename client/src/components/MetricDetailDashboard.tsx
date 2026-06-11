@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   Globe, ShieldCheck, AlertTriangle, TrendingDown, 
   Landmark, Users, HeartPulse, ActivitySquare, ArrowLeft,
   Activity, BarChart, FileText, Settings, Download
 } from 'lucide-react';
+import { fetchMetricDetail } from '../lib/dashboardApi';
 
 const PALETTE = {
   purple: '#7F22FE',     
@@ -14,23 +15,39 @@ const PALETTE = {
   deepTeal: '#073F4D',   
 };
 
-const METRIC_DATA = {
-  'stability': { label: 'Civilization Stability', score: '83', trend: '+1.2%', icon: Globe, color: PALETTE.sky, desc: 'Overall measure of the civilization\'s ability to maintain status quo and endure macro forces.' },
-  'resilience': { label: 'National Resilience', score: '76', trend: '+0.5%', icon: ShieldCheck, color: PALETTE.purple, desc: 'Capacity to absorb shocks and recover from infrastructure or governance failures.' },
-  'crisis': { label: 'Crisis Probability', score: '18', trend: '-2.1%', icon: AlertTriangle, color: PALETTE.orange, desc: 'Likelihood of a multi-sector crisis occurring within the next 90 days.' },
-  'governance': { label: 'Governance Effectiveness', score: '89', trend: '+3.4%', icon: Landmark, color: PALETTE.sky, desc: 'Efficiency of policy deployment, bureaucratic transparency, and rule of law.' },
-  'economic': { label: 'Economic Fragility', score: '32', trend: '+4.0%', icon: TrendingDown, color: PALETTE.orange, desc: 'Exposure to supply chain disruptions, debt crises, or sudden inflation.' },
-  'trust': { label: 'Institutional Trust', score: '64', trend: '-1.0%', icon: Users, color: '#10B981', desc: 'Public confidence in government, media, military, and financial institutions.' },
-  'social': { label: 'Social Cohesion', score: '71', trend: '+0.2%', icon: HeartPulse, color: '#F43F5E', desc: 'Internal harmony, lack of polarization, and overall unity of the population.' },
-  'emergency': { label: 'Emergency Readiness', score: '92', trend: '+0.1%', icon: ActivitySquare, color: PALETTE.purple, desc: 'Availability of strategic reserves, emergency response teams, and medical facilities.' },
+const iconMap: Record<string, any> = {
+  stability: Globe,
+  resilience: ShieldCheck,
+  crisis: AlertTriangle,
+  governance: Landmark,
+  economic: TrendingDown,
+  trust: Users,
+  social: HeartPulse,
+  emergency: ActivitySquare,
 };
 
 export function MetricDetailDashboard({ metricId, onNavigate }: { metricId: string, onNavigate?: (id: string) => void }) {
-  const data = METRIC_DATA[metricId as keyof typeof METRIC_DATA] || METRIC_DATA['stability'];
-  const Icon = data.icon;
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [settings, setSettings] = useState({ live: true, social: true, anomaly: false });
   const [timeframe, setTimeframe] = useState('1M');
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const id = metricId.replace('metric-', '');
+        const res = await fetchMetricDetail(id);
+        setData(res);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [metricId]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -41,6 +58,12 @@ export function MetricDetailDashboard({ metricId, onNavigate }: { metricId: stri
   const toggleSetting = (key: keyof typeof settings) => {
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
   };
+
+  if (loading || !data) {
+    return <div className="text-white text-center p-20 font-mono animate-pulse">Analyzing vector telemetry...</div>;
+  }
+
+  const Icon = iconMap[data.id] || Globe;
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto pb-24 text-gray-200 font-sans">
@@ -61,7 +84,7 @@ export function MetricDetailDashboard({ metricId, onNavigate }: { metricId: stri
                 </div>
                 <div>
                    <h2 className="text-3xl font-light tracking-tight text-white mb-2">{data.label}</h2>
-                   <p className="text-sm text-gray-400 max-w-xl">{data.desc}</p>
+                   <p className="text-sm text-gray-400 max-w-xl">{data.description}</p>
                 </div>
              </div>
              <div className="text-left md:text-right bg-slate-900/50 p-4 rounded-2xl border border-white/5 min-w-[200px]">
@@ -98,76 +121,73 @@ export function MetricDetailDashboard({ metricId, onNavigate }: { metricId: stri
                 </div>
              </div>
 
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}40` }}>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-4">Leading Indicators</h3>
-                    <ul className="space-y-3">
-                       <li className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-900/50">
-                         <span className="text-gray-300">Policy Adherence</span>
-                         <span className="font-mono text-emerald-400">+2.1%</span>
-                       </li>
-                       <li className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-900/50">
-                         <span className="text-gray-300">Budget Deficit</span>
-                         <span className="font-mono text-rose-400">-0.8%</span>
-                       </li>
-                       <li className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-900/50">
-                         <span className="text-gray-300">Public Sentiment</span>
-                         <span className="font-mono text-gray-400">~0.0%</span>
-                       </li>
-                    </ul>
-                 </div>
-                 <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}40` }}>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-4">Risk Contributing Factors</h3>
-                    <ul className="space-y-3">
-                       <li className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-900/50">
-                         <span className="text-gray-300">Resource Scarcity</span>
-                         <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-rose-500 w-[70%]" /></div>
-                       </li>
-                       <li className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-900/50">
-                         <span className="text-gray-300">External Conflicts</span>
-                         <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-amber-500 w-[40%]" /></div>
-                       </li>
-                       <li className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-900/50">
-                         <span className="text-gray-300">Market Volatility</span>
-                         <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 w-[15%]" /></div>
-                       </li>
-                    </ul>
-                 </div>
+             <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}40` }}>
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-4 flex items-center gap-2">
+                  <FileText size={16} className="text-purple-400" /> AI Strategic Narrative
+                </h3>
+                <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                   <p className="text-sm text-gray-300 leading-relaxed">
+                     {data.aiNarrative}
+                   </p>
+                </div>
              </div>
           </div>
 
           <div className="space-y-6">
              <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}40` }}>
-                <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-4 flex items-center gap-2">
-                  <FileText size={16} style={{ color: data.color }} /> AI Narrative Report
-                </h3>
-                <p className="text-xs text-gray-400 leading-relaxed bg-slate-950 p-4 rounded-xl border border-white/5">
-                   The <strong className="text-white">{data.label}</strong> score is currently stable but shows underlying vulnerabilities. 
-                   Recent systemic stress tests indicate an elevated exposure to rapid supply-chain contractions. AI-driven predictive modeling suggests implementing local redundancies within the next quarter to mitigate potential downward drifts in the index.
-                </p>
-                <button onClick={handleExport} disabled={exporting} className="w-full mt-4 py-2 bg-white/5 hover:bg-white/10 transition-colors uppercase text-[10px] font-mono tracking-widest font-bold text-white rounded-xl border border-white/10 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
-                  <Download size={12} className={exporting ? "animate-bounce" : ""} /> {exporting ? 'Exporting...' : 'Export Intelligence'}
-                </button>
+               <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-4">Leading Indicators</h3>
+               <div className="space-y-4">
+                 {data.leadingIndicators.map((ind: any, i: number) => (
+                   <div key={i} className="flex justify-between items-center pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                     <span className="text-sm font-semibold text-gray-300">{ind.label}</span>
+                     <div className="text-right">
+                       <div className="text-sm text-white font-bold">{ind.value}</div>
+                       <div className="text-[10px] font-mono text-gray-500">{ind.trend}</div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
              </div>
 
              <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}40` }}>
-                <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-4 flex items-center gap-2">
-                  <Settings size={16} className="text-gray-400" /> Metric Settings
-                </h3>
-                <div className="space-y-4">
-                   <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-400">Live Telemetry Data</span>
-                      <div onClick={() => toggleSetting('live')} className={`w-8 h-4 rounded-full relative cursor-pointer ${settings.live ? 'bg-emerald-500' : 'bg-slate-700'}`}><div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${settings.live ? 'right-0.5' : 'left-0.5'}`} /></div>
+               <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono mb-4">Risk Composition</h3>
+               <div className="space-y-4">
+                 {data.riskFactors.map((rf: any, i: number) => (
+                   <div key={i}>
+                     <div className="flex justify-between text-xs mb-1">
+                       <span className="text-gray-400">{rf.label}</span>
+                       <span className="font-mono text-gray-300">{rf.percent}%</span>
+                     </div>
+                     <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
+                       <div className={`h-full rounded-full ${rf.color}`} style={{ width: `${rf.percent}%` }} />
+                     </div>
                    </div>
-                   <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-400">Include Social Scraping</span>
-                      <div onClick={() => toggleSetting('social')} className={`w-8 h-4 rounded-full relative cursor-pointer ${settings.social ? 'bg-emerald-500' : 'bg-slate-700'}`}><div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${settings.social ? 'right-0.5' : 'left-0.5'}`} /></div>
-                   </div>
-                   <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-400">Anomaly Alerts</span>
-                      <div onClick={() => toggleSetting('anomaly')} className={`w-8 h-4 rounded-full relative cursor-pointer ${settings.anomaly ? 'bg-emerald-500' : 'bg-slate-700'}`}><div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${settings.anomaly ? 'right-0.5' : 'left-0.5'}`} /></div>
-                   </div>
-                </div>
+                 ))}
+               </div>
+             </div>
+
+             <div className="bg-[#030712] border rounded-3xl p-6" style={{ borderColor: `${PALETTE.deepTeal}40` }}>
+               <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-widest font-mono">Telemetry Settings</h3>
+                  <Settings size={14} className="text-gray-500" />
+               </div>
+               <div className="space-y-3">
+                 <label className="flex items-center justify-between text-xs text-gray-400 cursor-pointer p-2 hover:bg-slate-900 rounded">
+                   Live Socket Sync
+                   <input type="checkbox" checked={settings.live} onChange={() => toggleSetting('live')} className="accent-sky-500 w-3 h-3 rounded cursor-pointer" />
+                 </label>
+                 <label className="flex items-center justify-between text-xs text-gray-400 cursor-pointer p-2 hover:bg-slate-900 rounded">
+                   Include Social Media Sentiment
+                   <input type="checkbox" checked={settings.social} onChange={() => toggleSetting('social')} className="accent-sky-500 w-3 h-3 rounded cursor-pointer" />
+                 </label>
+                 <label className="flex items-center justify-between text-xs text-gray-400 cursor-pointer p-2 hover:bg-slate-900 rounded">
+                   Filter Micro-Anomalies
+                   <input type="checkbox" checked={settings.anomaly} onChange={() => toggleSetting('anomaly')} className="accent-sky-500 w-3 h-3 rounded cursor-pointer" />
+                 </label>
+               </div>
+               <button onClick={handleExport} className="w-full mt-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer flex items-center justify-center gap-2">
+                 {exporting ? <Activity size={14} className="animate-spin" /> : <Download size={14} />} {exporting ? 'Compiling Report...' : 'Export Metric Data'}
+               </button>
              </div>
           </div>
        </div>

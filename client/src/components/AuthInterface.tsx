@@ -1,38 +1,80 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Key, CheckCircle2, Shield, AlertOctagon, Fingerprint, Activity, Hexagon } from 'lucide-react';
+import { Mail, Lock, Key, Shield, AlertOctagon, Fingerprint, Activity } from 'lucide-react';
 
-export function AuthInterface({ onLogin, onNavigateToSignup }: { onLogin: (user: any) => void, onNavigateToSignup: () => void }) {
+const API_BASE = 'http://localhost:4000/api/auth';
+
+export function AuthInterface({
+  onLogin,
+  onNavigateToSignup,
+}: {
+  onLogin: (user: any) => void;
+  onNavigateToSignup: () => void;
+}) {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authEmail || !authPassword) {
-      setAuthError('Please enter both email and password.');
+
+    if (!authEmail.trim()) {
+      setAuthError('Please enter your email address.');
+      return;
+    }
+    if (!authPassword) {
+      setAuthError('Please enter your password.');
       return;
     }
 
     setAuthError('');
     setIsAuthenticating(true);
 
-    setTimeout(() => {
-      setIsAuthenticating(false);
-      onLogin({
-        name: 'Clara Oswald',
-        institution: 'Schwyz Logistics Depots',
-        clearanceLevel: 'Quantum Level 4 Overseer (Admin)',
-        enclaveRegion: 'Alpine Sector-12 Tactical Enclave'
+    try {
+      const response = await fetch(`${API_BASE}/signin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: authEmail.trim(),
+          password: authPassword,
+        }),
       });
-    }, 1200);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAuthError(data.error || 'Sign in failed. Please check your credentials.');
+        setIsAuthenticating(false);
+        return;
+      }
+
+      // Persist token in localStorage
+      if (data.token) {
+        localStorage.setItem('sovereignmind_token', data.token);
+        localStorage.setItem('sovereignmind_user', JSON.stringify(data.user));
+      }
+
+      onLogin({
+        name: data.user.fullName,
+        institution: data.user.company || 'SovereignMind Operator',
+        clearanceLevel: data.user.role || 'Sector Level 3 Planner',
+        enclaveRegion: data.user.enclaveRegion || 'Alpine Sector-12 Tactical Enclave',
+        email: data.user.email,
+        id: data.user.id,
+      });
+    } catch (err: any) {
+      console.error('Sign in network error:', err);
+      setAuthError('Unable to connect to server. Please ensure the backend is running on port 4000.');
+    } finally {
+      setIsAuthenticating(false);
+    }
   };
 
   return (
     <div id="signin-view" className="w-full pt-32 pb-24 bg-[#030303] min-h-[90vh] flex items-center">
       <section className="px-6 md:px-12 lg:px-16 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch animate-in fade-in slide-in-from-bottom-6 duration-500">
-          
+
           {/* LEFT COLUMN: THE LOGIN TERMINAL */}
           <div className="lg:col-span-7 flex flex-col justify-between">
             <div className="liquid-glass border border-white/10 p-8 md:p-10 rounded-3xl relative flex-grow flex flex-col justify-between shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
@@ -50,48 +92,12 @@ export function AuthInterface({ onLogin, onNavigateToSignup }: { onLogin: (user:
                   </div>
                   <h3 className="text-2xl md:text-3xl font-light text-white tracking-tight">Sign In to Sovereign Mind</h3>
                   <p className="text-xs text-gray-400 font-sans leading-relaxed">
-                    Verify your identity to access the global intelligence network and review operational dashboards.
+                    Enter your registered credentials to access the intelligence network and operational dashboards.
                   </p>
                 </div>
 
-                {/* Quick Preset Login Simulator Options */}
-                <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest block font-semibold">
-                      DEMO TEMPLATES (ONE-CLICK LOGIN)
-                    </span>
-                    <span className="text-[9px] font-mono text-sky-400 uppercase">Quick Fill Form</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthEmail('a.pendelton@solar-cooperative.ch');
-                        setAuthPassword('zurich-solar-grid-990');
-                        setAuthError('');
-                      }}
-                      className="bg-sky-950/20 hover:bg-sky-950/40 border border-sky-500/20 hover:border-sky-400/40 rounded-lg p-2.5 transition-all text-left group cursor-pointer"
-                    >
-                      <div className="text-xs font-semibold text-sky-300 group-hover:text-sky-200">Arthur Pendelton</div>
-                      <div className="text-[9px] font-mono text-gray-500">Solar Cooperative Lead</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthEmail('c.oswald@schwyz-logistique.ch');
-                        setAuthPassword('secure-silo-cleared-32');
-                        setAuthError('');
-                      }}
-                      className="bg-indigo-950/20 hover:bg-indigo-950/40 border border-indigo-500/20 hover:border-indigo-400/40 rounded-lg p-2.5 transition-all text-left group cursor-pointer"
-                    >
-                      <div className="text-xs font-semibold text-indigo-300 group-hover:text-indigo-200">Clara Oswald</div>
-                      <div className="text-[9px] font-mono text-gray-500">Logistics Administrator</div>
-                    </button>
-                  </div>
-                </div>
-
                 {authError && (
-                  <div className="p-3.5 bg-red-950/40 border border-red-500/30 text-red-300 text-xs rounded-xl flex items-center gap-2.5 animate-pulse">
+                  <div className="p-3.5 bg-red-950/40 border border-red-500/30 text-red-300 text-xs rounded-xl flex items-center gap-2.5">
                     <AlertOctagon size={14} className="flex-shrink-0 text-red-400" />
                     <span>{authError}</span>
                   </div>
@@ -99,15 +105,18 @@ export function AuthInterface({ onLogin, onNavigateToSignup }: { onLogin: (user:
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-4">
+                    {/* Email */}
                     <div className="space-y-1">
-                      <label className="text-[10px] font-mono uppercase text-gray-400 tracking-wide block">
+                      <label htmlFor="signin-email" className="text-[10px] font-mono uppercase text-gray-400 tracking-wide block">
                         Email Address
                       </label>
                       <div className="relative">
                         <Mail size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                         <input
+                          id="signin-email"
                           type="email"
                           required
+                          autoComplete="email"
                           value={authEmail}
                           onChange={(e) => setAuthEmail(e.target.value)}
                           className="w-full bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 focus:border-pink-500/50 text-white rounded-xl p-3 pl-9 text-xs focus:outline-none transition-all placeholder-gray-600"
@@ -116,15 +125,18 @@ export function AuthInterface({ onLogin, onNavigateToSignup }: { onLogin: (user:
                       </div>
                     </div>
 
+                    {/* Password */}
                     <div className="space-y-1">
-                      <label className="text-[10px] font-mono uppercase text-gray-400 tracking-wide block">
+                      <label htmlFor="signin-password" className="text-[10px] font-mono uppercase text-gray-400 tracking-wide block">
                         Password
                       </label>
                       <div className="relative">
                         <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                         <input
+                          id="signin-password"
                           type="password"
                           required
+                          autoComplete="current-password"
                           value={authPassword}
                           onChange={(e) => setAuthPassword(e.target.value)}
                           className="w-full bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 focus:border-pink-500/50 text-white rounded-xl p-3 pl-9 text-xs focus:outline-none transition-all placeholder-gray-600"
@@ -145,15 +157,19 @@ export function AuthInterface({ onLogin, onNavigateToSignup }: { onLogin: (user:
                         Remember this device
                       </label>
                     </div>
-                    <button type="button" className="text-[11px] text-pink-400 hover:text-pink-300 font-mono transition-colors font-semibold">
+                    <button
+                      type="button"
+                      className="text-[11px] text-pink-400 hover:text-pink-300 font-mono transition-colors font-semibold"
+                    >
                       Forgot Password?
                     </button>
                   </div>
 
                   <button
                     type="submit"
+                    id="btn-signin-submit"
                     disabled={isAuthenticating}
-                    className="w-full bg-white text-black py-3.5 hover:bg-gray-200 rounded-xl text-xs font-semibold tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full bg-white text-black py-3.5 hover:bg-gray-200 rounded-xl text-xs font-semibold tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {isAuthenticating ? (
                       <div className="flex items-center gap-2">
@@ -185,7 +201,6 @@ export function AuthInterface({ onLogin, onNavigateToSignup }: { onLogin: (user:
                   </p>
                 </div>
               </div>
-
             </div>
           </div>
 
@@ -196,13 +211,13 @@ export function AuthInterface({ onLogin, onNavigateToSignup }: { onLogin: (user:
 
               <div className="space-y-4">
                 <span className="text-[9px] font-mono text-gray-400 tracking-widest uppercase block border-b border-white/5 pb-2">ACTIVE SESSION PROTOCOLS</span>
-                
+
                 <div className="space-y-3">
                   <h4 className="text-base font-light text-white leading-snug">
                     Zero-Knowledge Architecture
                   </h4>
                   <p className="text-xs text-gray-400 leading-relaxed font-sans">
-                    Access localized data indicators, path routing simulations, and community organization tools designed with next-generation privacy and Swiss confidentiality practices.
+                    Your credentials are verified with bcrypt hashing and secure JWT session tokens. No plaintext passwords are ever stored or transmitted.
                   </p>
                 </div>
               </div>
@@ -211,20 +226,20 @@ export function AuthInterface({ onLogin, onNavigateToSignup }: { onLogin: (user:
               <div className="space-y-3 font-mono text-[10.5px] text-gray-400">
                 <div className="flex items-center gap-3">
                   <Fingerprint className="text-pink-400" size={16} />
-                  <span>Biometric multi-factor protocols active</span>
+                  <span>bcrypt password hashing (12 rounds)</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Shield className="text-pink-400" size={16} />
-                  <span>End-to-end encrypted session stream</span>
+                  <span>JWT session tokens (7-day expiry)</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Activity className="text-pink-400" size={16} />
-                  <span>Continuous live threat assessment online</span>
+                  <span>MongoDB Atlas encrypted storage</span>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-white/5 text-xs text-gray-500 font-sans">
-                Sovereign Mind guarantees zero-knowledge configuration infrastructure. All metrics reside with industry-standard security and strict data protection keys.
+                SovereignMind guarantees zero-knowledge configuration infrastructure. All credentials reside in secured MongoDB Atlas with industry-standard encryption.
               </div>
             </div>
           </div>

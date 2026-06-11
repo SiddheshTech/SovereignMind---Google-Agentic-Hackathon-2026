@@ -6,6 +6,7 @@ service SovereignMindService {
   // Sovereignty Genome Engine
   rpc GetSovereigntyGenome (GenomeRequest) returns (GenomeResponse);
   rpc SearchGenomeTraits (GenomeSearchRequest) returns (GenomeSearchResponse);
+  rpc CalculateSimilarity (SimilarityRequest) returns (SimilarityResponse);
 
   // Autonomous Constitutional AI Layer
   rpc RunConstitutionalEvaluation (ConstitutionalRequest) returns (ConstitutionalResponse);
@@ -18,6 +19,110 @@ service SovereignMindService {
 
   // Self-Improving Agent Loop / Autonomous Prompt Optimization
   rpc OptimizePrompt (PromptOptimizeRequest) returns (PromptOptimizeResponse);
+
+  // Authority Maps Policy Evaluation
+  rpc EvaluateAuthorityProposal (AuthorityProposalRequest) returns (AuthorityProposalResponse);
+
+  // Sandbox: Crisis Scenario Analysis (AI-powered)
+  rpc RunCrisisScenario (CrisisScenarioRequest) returns (CrisisScenarioResponse);
+
+  // Sandbox: Detailed Streaming Simulation Ticks
+  rpc RunDetailedSimulation (DetailedSimRequest) returns (stream DetailedSimTick);
+
+  // Sandbox: Recovery Path Generation (AI-powered)
+  rpc GenerateRecoveryPaths (RecoveryPathRequest) returns (RecoveryPathResponse);
+
+  // System Configuration & Settings
+  rpc GetSystemSettings (EmptyRequest) returns (SystemSettingsProto);
+  rpc SaveSystemSettings (SystemSettingsProto) returns (SystemSettingsProto);
+
+  rpc GetSecurityClearances (EmptyRequest) returns (ClearancesResponse);
+  rpc UpdateSecurityClearance (UpdateClearanceRequest) returns (ClearanceProto);
+
+  rpc GetAccessTokens (EmptyRequest) returns (AccessTokensResponse);
+  rpc GenerateAccessToken (GenerateTokenRequest) returns (AccessTokenProto);
+  rpc UpdateAccessToken (UpdateTokenRequest) returns (AccessTokenProto);
+
+  rpc GetAlertRules (EmptyRequest) returns (AlertRulesResponse);
+  rpc SaveAlertRule(SaveAlertRuleRequest) returns (AlertRuleProto);
+  rpc DeleteAlertRule(DeleteAlertRuleRequest) returns (DeleteRuleResponse);
+
+  rpc GetComplianceRecords(EmptyRequest) returns (GetComplianceRecordsResponse);
+  rpc SaveComplianceRecord(SaveComplianceRecordRequest) returns (ComplianceRecord);
+  rpc DeleteComplianceRecord(DeleteComplianceRecordRequest) returns (DeleteComplianceRecordResponse);
+
+  // Foresight Engine: Risk Radar
+  rpc GenerateRiskRadar(EmptyRequest) returns (RiskRadarResponse);
+
+  // Foresight Engine: Forecasting
+  rpc GenerateForecast(EmptyRequest) returns (ForecastResponse);
+
+  // Foresight Engine: Black Swan
+  rpc GenerateBlackSwan(EmptyRequest) returns (BlackSwanResponse);
+
+  // Digital Twin: Nation Model
+  rpc GetNationModel(EmptyRequest) returns (NationModelData);
+  rpc ExecuteShockScenario(ShockScenarioRequest) returns (NationModelData);
+
+  // Digital Twin: Dependencies
+  rpc GenerateDependencies(EmptyRequest) returns (DependenciesResponse);
+
+  // Digital Twin: Infrastructure
+  rpc GetInfrastructure(EmptyRequest) returns (InfrastructureData);
+  rpc SimulateInfrastructureUpdate(EmptyRequest) returns (InfrastructureData);
+
+  // Analytics Dashboard
+  rpc GetAnalyticsData(EmptyRequest) returns (AnalyticsDashboardData);
+  rpc SimulateAnalyticsUpdate(EmptyRequest) returns (AnalyticsDashboardData);
+  rpc GenerateSynthesisReport(GenerateSynthesisRequest) returns (IntelligenceReport);
+
+  // Crisis Dashboard
+  rpc GetCrisisData(EmptyRequest) returns (CrisisDashboardData);
+  rpc SimulateCrisisUpdate(EmptyRequest) returns (CrisisDashboardData);
+  rpc GeneratePolicyOptions(GeneratePolicyRequest) returns (CrisisPolicyResponse);
+
+  // Procurement Dashboard
+  rpc GetProcurementData(EmptyRequest) returns (ProcurementDashboardData);
+  rpc SimulateProcurementUpdate(EmptyRequest) returns (ProcurementDashboardData);
+
+  // Intelligence Graph Dashboard
+  rpc GetIntelligenceGraphData(EmptyRequest) returns (IntelligenceGraphData);
+  rpc SimulateIntelligenceUpdate(EmptyRequest) returns (IntelligenceGraphData);
+
+  // AI Copilot
+  rpc SendCopilotMessage(SendCopilotMessageRequest) returns (SendCopilotMessageResponse);
+
+  // Collaboration Dashboard
+  rpc GetCollaborationData(EmptyRequest) returns (CollaborationData);
+  rpc CreateCollaborationRoom(CreateCollaborationRoomRequest) returns (CollaborationRoom);
+  rpc SendCollaborationMessage(SendCollaborationMessageRequest) returns (CollaborationMessage);
+
+  // Command Center
+  rpc GetCommandCenterData(EmptyRequest) returns (CommandCenterDataProto);
+  rpc RefreshCommandCenterData(EmptyRequest) returns (CommandCenterDataProto);
+
+  // Executive Briefing
+  rpc GetExecutiveBriefingData(EmptyRequest) returns (ExecutiveBriefingDataProto);
+  rpc RefreshExecutiveBriefingData(EmptyRequest) returns (ExecutiveBriefingDataProto);
+
+  // Metric Detail
+  rpc GetMetricDetail(GetMetricDetailRequest) returns (MetricDetailDataProto);
+
+  // Emergency Powers & Treaty Constraints
+  rpc SimulateEmergencyPowers(SimulateEmergencyPowersRequest) returns (EmergencyPowersResultProto);
+  rpc AnalyzeTreatyConstraints(AnalyzeTreatyConstraintsRequest) returns (TreatyConstraintResultProto);
+
+  // Operator Dashboard
+  rpc GetOperatorDashboardData(EmptyRequest) returns (OperatorDashboardDataProto);
+}
+
+message GeneratePolicyRequest {
+  string prompt = 1;
+}
+
+message GenerateSynthesisRequest {
+  string domain = 1;
+  string horizon = 2;
 }
 
 // Sovereignty Genome Messages
@@ -141,4 +246,868 @@ message PromptOptimizeResponse {
   string optimized_prompt = 2;
   double performance_gain = 3;
   string evaluation_report = 4;
+}
+
+message AuthorityProposalRequest {
+  string title = 1;
+}
+
+message AuthorityProposalResponse {
+  string title = 1;
+  double safety_score = 2;
+  double risk_score = 3;
+  string civil_liberty_impact = 4;
+  string recommendation = 5;
+  string zone = 6;
+  repeated string constitutional_points = 7;
+  repeated string violations = 8;
+  string explanation = 9;
+}
+
+// Sandbox: Crisis Scenario Messages
+message CrisisScenarioRequest {
+  repeated string crises = 1;
+  string scenario_name = 2;
+}
+
+message AgeGroupProto {
+  string group = 1;
+  double percentage = 2;
+  string reaction = 3;
+}
+
+message IncomeClassProto {
+  string income_class = 1;
+  double percentage = 2;
+  string vulnerability = 3;
+}
+
+message MigrationTendenciesProto {
+  string rate = 1;
+  repeated string hotspots = 2;
+  string description = 3;
+}
+
+message ConsumptionPatternsProto {
+  string hoarding_risk = 1;
+  string essential_good_demand = 2;
+  string description = 3;
+}
+
+message SimulatedPopulationProto {
+  int64 total_agents = 1;
+  repeated AgeGroupProto age_groups = 2;
+  repeated IncomeClassProto income_classes = 3;
+  MigrationTendenciesProto migration_tendencies = 4;
+  ConsumptionPatternsProto consumption_patterns = 5;
+}
+
+message EconomicShockProto {
+  double oil_crisis_premium = 1;
+  double food_shortages_index = 2;
+  string disruption_summary = 3;
+}
+
+message PanicSentimentProto {
+  repeated string realtime_narratives = 1;
+  double protest_propensity = 2;
+  double misinformation_strength = 3;
+}
+
+message PoliticalPrefProto {
+  string faction = 1;
+  double percentage = 2;
+  string sentiment = 3;
+}
+
+message CrisisScenarioResponse {
+  string scenario_name = 1;
+  repeated string crises = 2;
+  SimulatedPopulationProto simulated_population = 3;
+  EconomicShockProto economic_shock = 4;
+  PanicSentimentProto panic_sentiment = 5;
+  repeated PoliticalPrefProto political_preferences = 6;
+  repeated string cascade_links = 7;
+  double resilience_score = 8;
+  double estimated_recovery_months = 9;
+}
+
+// Sandbox: Detailed Simulation Streaming
+message DetailedSimRequest {
+  repeated string crises = 1;
+  int32 epochs = 2;
+}
+
+message DetailedSimTick {
+  int32 epoch = 1;
+  double panic_level = 2;
+  double economic_disruption = 3;
+  double infra_instability = 4;
+  double supply_chain_failure = 5;
+  double civil_unrest = 6;
+  double collapse_probability = 7;
+  string status_message = 8;
+}
+
+// Sandbox: Recovery Path Messages
+message RecoveryPathRequest {
+  repeated string crises = 1;
+  string scenario_id = 2;
+}
+
+message RecoveryScenarioProto {
+  string trajectory = 1;
+  double probability = 2;
+  string description = 3;
+  int32 estimated_months = 4;
+}
+
+message RecoveryPathResponse {
+  RecoveryScenarioProto best_case = 1;
+  RecoveryScenarioProto expected = 2;
+  RecoveryScenarioProto worst_case = 3;
+  string overall_recommendation = 4;
+}
+
+message SimilarityRequest {
+  string country_code = 1;
+}
+
+message SimilarityResult {
+  string nation_name = 1;
+  double match_percentage = 2;
+}
+
+message SimilarityResponse {
+  repeated SimilarityResult results = 1;
+}
+
+message EmptyRequest {}
+
+message SystemSettingsProto {
+  string operator_name = 1;
+  string operator_id = 2;
+  string operator_institution = 3;
+  string operator_role = 4;
+  string operator_toggles_json = 5;
+  string model_processing_bound = 6;
+  string clearance_matrix_json = 7;
+  string active_region = 8;
+  string storage_policies_json = 9;
+  string processing_boundary = 10;
+  string theme = 11;
+  string telemetry_toggles_json = 12;
+  string notification_channels_json = 13;
+  string network_protocols_json = 14;
+  string network_policies_json = 15;
+}
+
+message ClearanceProto {
+  string id = 1;
+  string name = 2;
+  string service_id = 3;
+  string level = 4;
+  string status = 5;
+  string expiry = 6;
+}
+
+message ClearancesResponse {
+  repeated ClearanceProto clearances = 1;
+}
+
+message UpdateClearanceRequest {
+  string id = 1;
+  string level = 2;
+  string status = 3;
+}
+
+message AccessTokenProto {
+  string id = 1;
+  string owner = 2;
+  string token_type = 3;
+  string created = 4;
+  string last_used = 5;
+  string status = 6;
+}
+
+message AccessTokensResponse {
+  repeated AccessTokenProto tokens = 1;
+}
+
+message GenerateTokenRequest {
+  string token_type = 1;
+  string environment = 2;
+  string permissions = 3;
+  string owner = 4;
+}
+
+message UpdateTokenRequest {
+  string id = 1;
+  string action = 2;
+}
+
+message AlertRuleProto {
+  string id = 1;
+  string name = 2;
+  string severity = 3;
+  string trigger = 4;
+  string destination = 5;
+  bool active = 6;
+}
+
+message AlertRulesResponse {
+  repeated AlertRuleProto rules = 1;
+}
+
+message SaveAlertRuleRequest {
+  string id = 1;
+  string name = 2;
+  string severity = 3;
+  string trigger = 4;
+  string destination = 5;
+  bool active = 6;
+}
+
+message DeleteAlertRuleRequest {
+  string id = 1;
+}
+
+message DeleteRuleResponse {
+  bool success = 1;
+}
+
+// ==========================================
+// COMPLIANCE RECORDS MESSAGES
+// ==========================================
+
+message SendCopilotMessageResponse {
+  string id = 1;
+  string role = 2;
+  string content = 3;
+  string timestamp = 4;
+}
+
+// ---------------------------------------------------------
+// Collaboration Dashboard Messages
+// ---------------------------------------------------------
+
+message CollaborationRoom {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string category = 4;
+  bool ping = 5;
+  int32 unread = 6;
+}
+
+message CollaborationUser {
+  string id = 1;
+  string name = 2;
+  string status = 3;
+}
+
+message ArtifactHistory {
+  string v = 1;
+  string d = 2;
+}
+
+message SharedArtifact {
+  string id = 1;
+  string title = 2;
+  string date = 3;
+  string type = 4;
+  string metadata = 5;
+  repeated ArtifactHistory history = 6;
+}
+
+message CollaborationMessage {
+  string roomId = 1;
+  string sender = 2;
+  string text = 3;
+  string time = 4;
+}
+
+message CollaborationData {
+  repeated CollaborationRoom rooms = 1;
+  repeated CollaborationUser users = 2;
+  repeated SharedArtifact artifacts = 3;
+  repeated CollaborationMessage messages = 4;
+}
+
+message CreateCollaborationRoomRequest {
+  string name = 1;
+  string type = 2;
+  string category = 3;
+}
+
+message SendCollaborationMessageRequest {
+  string roomId = 1;
+  string sender = 2;
+  string text = 3;
+}
+
+message ComplianceRecord {
+  string id = 1;
+  string name = 2;
+  string score = 3;
+  string risk = 4;
+  string last_audit = 5;
+}
+
+message GetComplianceRecordsResponse {
+  repeated ComplianceRecord records = 1;
+}
+
+message SaveComplianceRecordRequest {
+  string id = 1;
+  string name = 2;
+  string score = 3;
+  string risk = 4;
+  string last_audit = 5;
+}
+
+message DeleteComplianceRecordRequest {
+  string id = 1;
+}
+
+message DeleteComplianceRecordResponse {
+  bool success = 1;
+}
+
+// ==========================================
+// RISK RADAR MESSAGES
+// ==========================================
+
+message ThreatProto {
+  string threat_name = 1;
+  double probability = 2; // 0 to 100
+  string severity = 3;
+  string time_to_impact = 4;
+}
+
+message SignalProto {
+  string signal_name = 1;
+  string impact = 2;
+  string probability_trend = 3;
+}
+
+message RiskRadarResponse {
+  repeated ThreatProto threats = 1;
+  repeated SignalProto signals = 2;
+}
+
+// ==========================================
+// FORECASTING MESSAGES
+// ==========================================
+
+message ForecastTimelinePoint {
+  string year = 1;
+  string title = 2;
+  string description = 3;
+}
+
+message ForecastResponse {
+  repeated ForecastTimelinePoint timeline_points = 1;
+  string stability_deviation = 2;
+  string convergence_point_description = 3;
+}
+
+// ── Black Swan ──────────────────────────────────────────────────────────
+
+message BlackSwanAnomaly {
+  string title = 1;
+  string probability = 2;
+  string severity = 3;
+  string description = 4;
+}
+
+message BlackSwanResponse {
+  repeated BlackSwanAnomaly anomalies = 1;
+  int32 permutations_run = 2;
+}
+
+// ── Nation Model (Digital Twin) ─────────────────────────────────────────
+
+message NationModelData {
+  string economy_val = 1;
+  string economy_trend = 2;
+  string society_val = 3;
+  string society_subtitle = 4;
+  string governance_val = 5;
+  string governance_subtitle = 6;
+  string infrastructure_val = 7;
+  string infrastructure_trend = 8;
+  string security_val = 9;
+  string security_subtitle = 10;
+  int32 taxation_velocity = 11;
+  string border_friction = 12;
+  int32 cohesion_index = 13;
+  string supply_integration = 14;
+  int32 volatility_index = 15;
+  double integrity_percentage = 16;
+}
+
+message ShockScenarioRequest {
+  string shock_name = 1;
+}
+
+// ── Dependencies (Digital Twin) ─────────────────────────────────────────
+
+message DependencyNode {
+  string id = 1;
+  string title = 2;
+  string status = 3; // "optimal", "strained", "high_vulnerability"
+  string icon = 4; // "zap", "droplets", "database", "factory", "users", etc.
+}
+
+message DependencyEdge {
+  string from_id = 1;
+  string to_id = 2;
+  string status = 3; // "optimal", "strained", "high_vulnerability"
+}
+
+message DependenciesResponse {
+  repeated DependencyNode nodes = 1;
+  repeated DependencyEdge edges = 2;
+}
+
+// ── Infrastructure (Digital Twin) ───────────────────────────────────────
+
+message InfrastructureMetric {
+  string label = 1;
+  string val = 2;
+}
+
+message InfrastructureNode {
+  string id = 1;
+  string title = 2;
+  string icon = 3; // "zap", "droplets", "server", "factory", etc.
+  string status = 4; // "Optimal", "Warning", "Offline"
+  string statusColor = 5; // "emerald", "amber", "rose"
+  int32 load = 6;
+  repeated InfrastructureMetric metrics = 7;
+}
+
+message InfrastructureData {
+  repeated InfrastructureNode nodes = 1;
+}
+
+// ── Analytics Dashboard ─────────────────────────────────────────────────
+
+message AnalyticsKeyMetric {
+  string title = 1;
+  string value = 2;
+  string trend = 3;
+  string trendDir = 4; // "up", "down", "neutral"
+  string statusColor = 5; // "blue", "emerald", "amber", "rose", "slate"
+}
+
+message VectorDataPoint {
+  float value = 1;
+  bool isAnomaly = 2;
+}
+
+message ScoreMatrixItem {
+  string label = 1;
+  int32 score = 2;
+  int32 baseline = 3;
+  string color = 4; // "emerald", "amber", "rose", "blue"
+}
+
+message IntelligenceReport {
+  string id = 1;
+  string title = 2;
+  string desc = 3;
+  string date = 4;
+  int32 confidence = 5;
+  string category = 6;
+  bool isCritical = 7;
+}
+
+message AnalyticsDashboardData {
+  repeated AnalyticsKeyMetric keyMetrics = 1;
+  repeated VectorDataPoint vectorData = 2;
+  repeated ScoreMatrixItem scoring = 3;
+  repeated IntelligenceReport reports = 4;
+}
+
+// ── Crisis Dashboard ────────────────────────────────────────────────────
+
+message CrisisIncident {
+  string id = 1;
+  string title = 2;
+  string time = 3;
+  string desc = 4;
+  string severity = 5;
+  string status = 6;
+  int32 responders = 7;
+}
+
+message CrisisMapNode {
+  string id = 1;
+  float x = 2;
+  float y = 3;
+  string type = 4;
+  string status = 5;
+}
+
+message CrisisChannel {
+  string name = 1;
+  bool active = 2;
+  string status = 3;
+}
+
+message CrisisLogEntry {
+  string time = 1;
+  string msg = 2;
+  string type = 3;
+}
+
+message CrisisPolicyOption {
+  string title = 1;
+  string desc = 2;
+  string tag = 3;
+}
+
+message CrisisComparatorRow {
+  string metric = 1;
+  string optA = 2;
+  string optB = 3;
+  string optC = 4;
+}
+
+message CrisisChatMsg {
+  string name = 1;
+  string msg = 2;
+  string time = 3;
+  bool isAI = 4;
+}
+
+message CrisisDashboardData {
+  repeated CrisisIncident incidents = 1;
+  repeated CrisisMapNode mapNodes = 2;
+  repeated CrisisChannel channels = 3;
+  repeated CrisisLogEntry logs = 4;
+  repeated CrisisPolicyOption policyOptions = 5;
+  repeated CrisisComparatorRow comparatorRows = 6;
+  repeated CrisisChatMsg chatMsgs = 7;
+  string jointResolutionDraft = 8;
+  string activeDefcon = 9;
+}
+
+message CrisisPolicyResponse {
+  repeated CrisisPolicyOption options = 1;
+  repeated CrisisComparatorRow rows = 2;
+}
+
+// ── Procurement Dashboard ───────────────────────────────────────────────────
+
+message ProcurementVendor {
+  string name = 1;
+  string id = 2;
+  string category = 3;
+  string tier = 4;
+  string status = 5;
+  float reliability = 6;
+  string distance = 7;
+  string capacity = 8;
+}
+
+message ProcurementContract {
+  string id = 1;
+  string entity = 2;
+  string type = 3;
+  string date = 4;
+  string status = 5;
+}
+
+message ProcurementMapNode {
+  string id = 1;
+  float x = 2;
+  float y = 3;
+  string type = 4;
+  string statusText = 5;
+}
+
+message ProcurementMapPath {
+  string path = 1;
+  string stroke = 2;
+  bool animated = 3;
+}
+
+message ProcurementRiskVector {
+  string label = 1;
+  string val = 2;
+  string trend = 3;
+  string color = 4;
+  string detail = 5;
+}
+
+message ProcurementDashboardData {
+  repeated ProcurementVendor vendors = 1;
+  repeated ProcurementContract contracts = 2;
+  repeated ProcurementMapNode mapNodes = 3;
+  repeated ProcurementMapPath mapPaths = 4;
+  repeated ProcurementRiskVector riskVectors = 5;
+  string defcon = 6;
+  int32 activeScanAgents = 7;
+}
+
+// ── Intelligence Graph Dashboard ─────────────────────────────────────────────
+
+message IntelligenceNode {
+  string id = 1;
+  string type = 2;
+  string baseColor = 3;
+  int32 connections = 4;
+  float x = 5;
+  float y = 6;
+  float size = 7;
+  string classStr = 8;
+  string dot = 9;
+  bool pulse = 10;
+}
+
+message IntelligenceEdge {
+  string source = 1;
+  string target = 2;
+  string color = 3;
+  int32 width = 4;
+  bool dashed = 5;
+  float opacity = 6;
+  bool pulse = 7;
+}
+
+message TopologyStats {
+  string totalNodes = 1;
+  string activeEdges = 2;
+  string densityScore = 3;
+  string centralityDrift = 4;
+}
+
+message CascadeMitigation {
+  string label = 1;
+  string val = 2;
+  int32 pct = 3;
+}
+
+message CascadeStep {
+  string time = 1;
+  string title = 2;
+  string desc = 3;
+  string color = 4;
+  bool isWarning = 5;
+  bool isFinal = 6;
+}
+
+message CascadeScenario {
+  string id = 1;
+  string trigger = 2;
+  repeated CascadeMitigation mitigations = 3;
+  repeated CascadeStep steps = 4;
+}
+
+message IntelligenceGraphData {
+  repeated IntelligenceNode nodes = 1;
+  repeated IntelligenceEdge edges = 2;
+  TopologyStats topologyStats = 3;
+  repeated CascadeScenario simulations = 4;
+}
+
+// ── AI Copilot ─────────────────────────────────────────────────────────────
+
+message SendCopilotMessageRequest {
+  string prompt = 1;
+}
+
+message SendCopilotMessageResponse {
+  string content = 1;
+}
+
+// ── COMMAND CENTER ─────────────────────────────────────────────────────────────
+
+message CommandCenterThreatProto {
+  string title = 1;
+  string trend = 2;
+  string color = 3;
+  string time = 4;
+}
+
+message CommandCenterRiskProto {
+  int32 year = 1;
+  string risk = 2;
+  string prob = 3;
+}
+
+message CommandCenterRankingProto {
+  string category = 1;
+  string nation = 2;
+}
+
+message CommandCenterRecommendationProto {
+  string text = 1;
+  string impact = 2;
+  string icon = 3;
+}
+
+message CommandCenterTimelineEventProto {
+  string year = 1;
+  string name = 2;
+  string type = 3;
+}
+
+message CommandCenterMetricProto {
+  string id = 1;
+  string label = 2;
+  string score = 3;
+  string status = 4;
+  string details = 5;
+  string color = 6;
+}
+
+message CommandCenterMapPointProto {
+  string id = 1;
+  string x = 2;
+  string y = 3;
+  string color = 4;
+  bool pulse = 5;
+  string stability = 6;
+  string resilience = 7;
+  string activeRisk = 8;
+}
+
+message CommandCenterDataProto {
+  int32 stabilityScore = 1;
+  string stabilityLabel = 2;
+  string trend30d = 3;
+  int32 activeThreats = 4;
+  int32 criticalNations = 5;
+  int32 emergingRisks = 6;
+  string aiBriefing = 7;
+  repeated CommandCenterThreatProto threats = 8;
+  repeated CommandCenterRiskProto futureRisks = 9;
+  repeated CommandCenterRankingProto rankings = 10;
+  repeated CommandCenterRecommendationProto recommendations = 11;
+  repeated CommandCenterTimelineEventProto timelineEvents = 12;
+  repeated CommandCenterMetricProto metrics = 13;
+  repeated CommandCenterMapPointProto mapPoints = 14;
+}
+
+// ── EXECUTIVE BRIEFING ─────────────────────────────────────────────────────────
+
+message ExecutiveTaskProto {
+  int32 id = 1;
+  string title = 2;
+  string desc = 3;
+  string status = 4;
+  string statusColor = 5;
+  string date = 6;
+  string priority = 7;
+  string owner = 8;
+  string dep = 9;
+}
+
+message ExecutiveMeetingProto {
+  int32 id = 1;
+  string color = 2;
+  string title = 3;
+  string time = 4;
+  int32 participants = 5;
+  string priority = 6;
+}
+
+message ExecutiveBriefingDataProto {
+  repeated ExecutiveTaskProto tasks = 1;
+  repeated ExecutiveMeetingProto meetings = 2;
+  int32 totalDirectives = 3;
+  int32 resolvedLoops = 4;
+  string recalibrationRate = 5;
+  int32 interruptVectors = 6;
+}
+
+// ── METRIC DETAIL ─────────────────────────────────────────────────────────────
+
+message GetMetricDetailRequest {
+  string metric_id = 1;
+}
+
+message MetricIndicatorProto {
+  string label = 1;
+  string value = 2;
+  string trend = 3;
+}
+
+message MetricRiskFactorProto {
+  string label = 1;
+  int32 percent = 2;
+  string color = 3;
+}
+
+message MetricDetailDataProto {
+  string id = 1;
+  string label = 2;
+  string score = 3;
+  string trend = 4;
+  string description = 5;
+  string color = 6;
+  repeated MetricIndicatorProto leadingIndicators = 7;
+  repeated MetricRiskFactorProto riskFactors = 8;
+  string aiNarrative = 9;
+}
+
+// ── EMERGENCY POWERS ─────────────────────────────────────────────────────────
+
+message SimulateEmergencyPowersRequest {
+  string scenario = 1;
+}
+
+message EmergencyRiskAssessmentProto {
+  string level = 1;
+  string description = 2;
+}
+
+message EmergencyPowersResultProto {
+  string scenario = 1;
+  repeated string allowedActions = 2;
+  repeated string restrictedActions = 3;
+  EmergencyRiskAssessmentProto judicialRisk = 4;
+  EmergencyRiskAssessmentProto politicalRisk = 5;
+  string treatyImpact = 6;
+}
+
+// ── TREATY CONSTRAINTS ───────────────────────────────────────────────────────
+
+message AnalyzeTreatyConstraintsRequest {
+  string proposal = 1;
+}
+
+message TreatyAgreementProto {
+  string category = 1;
+  string status = 2;
+  string impact = 3;
+}
+
+message TreatyConstraintResultProto {
+  string proposal = 1;
+  repeated TreatyAgreementProto agreements = 2;
+}
+
+// ── OPERATOR DASHBOARD ───────────────────────────────────────────────────────
+
+message NotificationProto {
+  int32 id = 1;
+  string text = 2;
+  string time = 3;
+  bool read = 4;
+}
+
+message ActivityTimelineEventProto {
+  string time = 1;
+  string event = 2;
+  string type = 3;
+}
+
+message OperatorDashboardDataProto {
+  repeated NotificationProto notifications = 1;
+  repeated ActivityTimelineEventProto timeline = 2;
 }

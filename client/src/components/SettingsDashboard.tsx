@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Settings, Shield, Key, Bell, Database, HardDrive, Monitor, Lock, User, Globe, Activity, RotateCcw, Save, CheckCircle2, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSettingsWS } from '../lib/useSettingsWS';
 
 import { SettingsOperatorProfile } from './SettingsOperatorProfile';
 import { SettingsSecurityClearances } from './SettingsSecurityClearances';
@@ -18,7 +19,7 @@ export function SettingsDashboard() {
   const [toasts, setToasts] = useState<{ id: string, msg: string, type: ToastType }[]>([]);
 
   // Simple global toast add function passed to children
-  const addToast = React.useCallback((msg: string, type: ToastType = 'info') => {
+  const addToast = useCallback((msg: string, type: ToastType = 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts(prev => [...prev, { id, msg, type }]);
     
@@ -27,6 +28,22 @@ export function SettingsDashboard() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 3000);
   }, []);
+
+  // Real-time settings WS subscription
+  useSettingsWS({
+    onEvent: useCallback((event) => {
+      const messages: Record<string, string> = {
+        SETTINGS_UPDATED: '⚡ Settings synced from another session.',
+        TOKEN_GENERATED: '🔑 New access token issued.',
+        TOKEN_UPDATED: '🔄 Token status updated.',
+        CLEARANCE_UPDATED: '🛡️ Security clearance changed.',
+        ALERT_RULE_SAVED: '🔔 Alert routing rule updated.',
+        ALERT_RULE_DELETED: '🗑️ Alert rule removed.',
+      };
+      const msg = messages[event.type];
+      if (msg) addToast(msg, 'info');
+    }, [addToast]),
+  });
 
   // Keyboard Shortcuts global listener
   useEffect(() => {

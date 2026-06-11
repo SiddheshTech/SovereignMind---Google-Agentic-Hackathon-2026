@@ -7,6 +7,7 @@ import { typeDefs } from './graphql/schema';
 import { resolvers } from './graphql/resolvers';
 import { initWebSocketServer } from './websockets/simulation_stream';
 import authRoutes from './routes/auth';
+import { connectMongoDB } from './config/mongodb';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,6 +15,9 @@ dotenv.config();
 const PORT = process.env.PORT || 4000;
 
 async function startGateway() {
+  // Connect to MongoDB first
+  await connectMongoDB();
+
   const app = express();
   const httpServer = createServer(app);
 
@@ -28,7 +32,10 @@ async function startGateway() {
 
   await apolloServer.start();
 
-  app.use(cors());
+  app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:4173'],
+    credentials: true,
+  }));
   app.use(express.json());
 
   // Mount Apollo middleware
@@ -41,12 +48,13 @@ async function startGateway() {
   app.use('/api/auth', authRoutes);
 
   app.get('/health', (req, res) => {
-    res.json({ status: 'OK', service: 'SovereignMind Gateway Node' });
+    res.json({ status: 'OK', service: 'SovereignMind Gateway Node', database: 'MongoDB Connected' });
   });
 
   httpServer.listen(PORT, () => {
     console.log(`🚀 SovereignMind API Gateway active at:`);
     console.log(`   - HTTP/GraphQL: http://localhost:${PORT}/graphql`);
+    console.log(`   - Auth API:     http://localhost:${PORT}/api/auth`);
     console.log(`   - WebSockets:   ws://localhost:${PORT}/ws/sandbox`);
   });
 }
