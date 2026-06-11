@@ -1,17 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { Monitor, Layout, Activity, Download, RefreshCw, BarChart2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Monitor, Layout, Activity, Download, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { fetchSystemSettings, saveSystemSettings } from '../lib/settingsApi';
+
+type TelemetryToggles = {
+  usageAnalytics: boolean;
+  crashReports: boolean;
+  behavioralMetrics: boolean;
+  heatmaps: boolean;
+  diagnosticLogs: boolean;
+};
+
+const THEMES = [
+  { id: 'Sovereign Dark', color: 'bg-slate-900', border: 'border-slate-700', activeBorder: 'border-pink-500' },
+  { id: 'Quantum Blue', color: 'bg-pink-950', border: 'border-pink-900', activeBorder: 'border-pink-400' },
+  { id: 'Tactical Green', color: 'bg-emerald-950', border: 'border-emerald-900', activeBorder: 'border-emerald-400' },
+  { id: 'Crimson Alert', color: 'bg-rose-950', border: 'border-rose-900', activeBorder: 'border-rose-400' },
+];
 
 export function SettingsUITelemetry({ addToast }: { addToast: (msg: string, type?: 'success' | 'warning' | 'error' | 'info') => void }) {
   const [theme, setTheme] = useState('Sovereign Dark');
   const [layoutState, setLayoutState] = useState<'idle' | 'saving' | 'resetting'>('idle');
-  const [telemetry, setTelemetry] = useState({
+  const [telemetry, setTelemetry] = useState<TelemetryToggles>({
     usageAnalytics: true,
     crashReports: true,
     behavioralMetrics: false,
     heatmaps: false,
     diagnosticLogs: true,
   });
+  const [loading, setLoading] = useState(true);
+  const [savingTheme, setSavingTheme] = useState(false);
 
   const [performanceData, setPerformanceData] = useState(
     Array.from({ length: 20 }, (_, i) => ({
@@ -24,26 +42,56 @@ export function SettingsUITelemetry({ addToast }: { addToast: (msg: string, type
   useEffect(() => {
     const interval = setInterval(() => {
       setPerformanceData(prev => {
-        const newData = [...prev.slice(1), {
+        return [...prev.slice(1), {
           time: prev[prev.length - 1].time + 1,
-          cpu: 30 + Math.random() * 30, // Random fluctuation
-          memory: 40 + Math.random() * 15, // Gradual change
+          cpu: 30 + Math.random() * 30,
+          memory: 40 + Math.random() * 15,
         }];
-        return newData;
       });
     }, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleThemeChange = (newTheme: string) => {
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const s = await fetchSystemSettings();
+      setTheme(s.theme || 'Sovereign Dark');
+      try {
+        const t = JSON.parse(s.telemetryTogglesJson || '{}');
+        if (Object.keys(t).length > 0) setTelemetry(t);
+      } catch (_) {}
+    } catch (err: any) {
+      addToast('Failed to load UI settings.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleThemeChange = async (newTheme: string) => {
     setTheme(newTheme);
-    // In a real app we would apply a CSS class to body or HTML tag based on the theme
-    addToast(`${newTheme} theme selected. Application state updated.`, 'success');
+    setSavingTheme(true);
+    try {
+      await saveSystemSettings({ theme: newTheme });
+      addToast(`${newTheme} theme selected.`, 'success');
+    } catch (err: any) {
+      addToast('Failed to save theme.', 'error');
+    } finally {
+      setSavingTheme(false);
+    }
   };
 
-  const handleTelemetryToggle = (key: keyof typeof telemetry) => {
-    setTelemetry(prev => ({ ...prev, [key]: !prev[key] }));
-    addToast(`Telemetry setting updated. Restart may be required for full effect.`, 'info');
+  const handleTelemetryToggle = async (key: keyof TelemetryToggles) => {
+    const updated = { ...telemetry, [key]: !telemetry[key] };
+    setTelemetry(updated);
+    try {
+      await saveSystemSettings({ telemetryTogglesJson: JSON.stringify(updated) });
+      addToast('Telemetry setting updated.', 'info');
+    } catch (err: any) {
+      addToast('Failed to save telemetry setting.', 'error');
+    }
   };
 
   const exportTelemetry = (format: string) => {
@@ -52,6 +100,15 @@ export function SettingsUITelemetry({ addToast }: { addToast: (msg: string, type
       addToast(`Telemetry successfully exported as ${format}.`, 'success');
     }, 1500);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-pink-400" size={32} />
+        <span className="ml-3 text-gray-400 text-sm">Loading UI settings…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -62,15 +119,11 @@ export function SettingsUITelemetry({ addToast }: { addToast: (msg: string, type
         <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
           <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2 mb-6">
             <Layout size={16} className="text-pink-400" /> Theme Engine
+            {savingTheme && <Loader2 size={12} className="animate-spin text-pink-400 ml-1" />}
           </h3>
           
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { id: 'Sovereign Dark', color: 'bg-slate-900', border: 'border-slate-700', activeBorder: 'border-pink-500' },
-              { id: 'Quantum Blue', color: 'bg-pink-950', border: 'border-pink-900', activeBorder: 'border-pink-400' },
-              { id: 'Tactical Green', color: 'bg-emerald-950', border: 'border-emerald-900', activeBorder: 'border-emerald-400' },
-              { id: 'Crimson Alert', color: 'bg-rose-950', border: 'border-rose-900', activeBorder: 'border-rose-400' },
-            ].map((t) => (
+            {THEMES.map((t) => (
               <button
                 key={t.id}
                 onClick={() => handleThemeChange(t.id)}
@@ -130,7 +183,7 @@ export function SettingsUITelemetry({ addToast }: { addToast: (msg: string, type
               { id: 'heatmaps', title: 'Heatmaps', desc: 'Capture visual engagement density.' },
               { id: 'diagnosticLogs', title: 'Diagnostic Logs', desc: 'Stream runtime diagnostic outputs.' },
             ].map((control) => {
-              const active = telemetry[control.id as keyof typeof telemetry];
+              const active = telemetry[control.id as keyof TelemetryToggles];
               return (
                 <div key={control.id} className="flex justify-between items-center py-2 border-b border-slate-800/50 last:border-0">
                   <div>
@@ -138,7 +191,7 @@ export function SettingsUITelemetry({ addToast }: { addToast: (msg: string, type
                     <div className="text-[10px] text-gray-500">{control.desc}</div>
                   </div>
                   <button 
-                     onClick={() => handleTelemetryToggle(control.id as keyof typeof telemetry)}
+                     onClick={() => handleTelemetryToggle(control.id as keyof TelemetryToggles)}
                      className={`w-10 h-5 rounded-full flex items-center shrink-0 transition-colors ${active ? 'bg-emerald-500' : 'bg-slate-700'}`}
                    >
                      <div className={`w-3.5 h-3.5 bg-white rounded-full transition-transform ${active ? 'translate-x-6' : 'translate-x-1'}`} />

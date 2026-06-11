@@ -84,21 +84,23 @@ export function optimizePrompt(agentId: string, taskDescription: string, systemP
   });
 }
 
-<<<<<<< HEAD
 export function evaluateAuthorityProposal(title: string): Promise<any> {
   return new Promise((resolve, reject) => {
     grpcClient.EvaluateAuthorityProposal({ title }, (err: any, response: any) => {
-=======
-export function calculateSimilarity(countryCode: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    grpcClient.CalculateSimilarity({ country_code: countryCode }, (err: any, response: any) => {
->>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
       if (err) return reject(err);
       resolve(response);
     });
   });
 }
-<<<<<<< HEAD
+
+export function calculateSimilarity(countryCode: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.CalculateSimilarity({ country_code: countryCode }, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
 
 // ── Sandbox Methods ──────────────────────────────────────────────────────────
 
@@ -130,5 +132,130 @@ export function generateRecoveryPaths(crises: string[], scenarioId: string = '')
     );
   });
 }
-=======
->>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
+
+// ── Settings Methods ──────────────────────────────────────────────────────────
+
+export function getSystemSettings(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetSystemSettings({}, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+export function saveSystemSettings(updates: Record<string, any>): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SaveSystemSettings(updates, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+export function getSecurityClearances(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetSecurityClearances({}, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+export function updateSecurityClearance(id: string, level?: string, status?: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.UpdateSecurityClearance({ id, level: level || '', status: status || '' }, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+export function getAccessTokens(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetAccessTokens({}, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+export function generateAccessToken(tokenType: string, environment: string, permissions: string, owner?: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GenerateAccessToken(
+      { token_type: tokenType, environment, permissions, owner: owner || 'System' },
+      (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response);
+      }
+    );
+  });
+}
+
+export function updateAccessToken(id: string, action: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.UpdateAccessToken({ id, action }, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+export function getAlertRules(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetAlertRules({}, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+export function saveAlertRule(rule: { id?: string; name: string; severity: string; trigger: string; destination: string; active: boolean }): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SaveAlertRule(
+      { id: rule.id || '', name: rule.name, severity: rule.severity, trigger: rule.trigger, destination: rule.destination, active: rule.active },
+      (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response);
+      }
+    );
+  });
+}
+
+export function deleteAlertRule(id: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.DeleteAlertRule({ id }, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+// ── COMPLIANCE RECORDS ────────────────────────────────────────────────────────
+
+export function getComplianceRecords(): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.GetComplianceRecords({}, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response?.records || []);
+    });
+  });
+}
+
+export function saveComplianceRecord(request: any): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.SaveComplianceRecord(request, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}
+
+export function deleteComplianceRecord(id: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    grpcClient.DeleteComplianceRecord({ id }, (err: any, response: any) => {
+      if (err) return reject(err);
+      resolve(response);
+    });
+  });
+}

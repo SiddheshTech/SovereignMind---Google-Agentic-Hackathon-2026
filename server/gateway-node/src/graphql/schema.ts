@@ -227,6 +227,91 @@ export const typeDefs = `#graphql
     estimatedRecoveryMonths: Float!
   }
 
+  # ── Settings Types ────────────────────────────────────────────────────────────
+
+  type SystemSettings {
+    operatorName: String!
+    operatorId: String!
+    operatorInstitution: String!
+    operatorRole: String!
+    operatorTogglesJson: String!
+    modelProcessingBound: String!
+    clearanceMatrixJson: String!
+    activeRegion: String!
+    storagePoliciesJson: String!
+    processingBoundary: String!
+    theme: String!
+    telemetryTogglesJson: String!
+    notificationChannelsJson: String!
+    networkProtocolsJson: String!
+    networkPoliciesJson: String!
+  }
+
+  input SystemSettingsInput {
+    operatorName: String
+    operatorId: String
+    operatorInstitution: String
+    operatorRole: String
+    operatorTogglesJson: String
+    modelProcessingBound: String
+    clearanceMatrixJson: String
+    activeRegion: String
+    storagePoliciesJson: String
+    processingBoundary: String
+    theme: String
+    telemetryTogglesJson: String
+    notificationChannelsJson: String
+    networkProtocolsJson: String
+    networkPoliciesJson: String
+  }
+
+  type SecurityClearance {
+    id: ID!
+    name: String!
+    serviceId: String!
+    level: String!
+    status: String!
+    expiry: String!
+  }
+
+  type AccessToken {
+    id: ID!
+    owner: String!
+    tokenType: String!
+    created: String!
+    lastUsed: String!
+    status: String!
+  }
+
+  type AlertRule {
+    id: ID!
+    name: String!
+    severity: String!
+    trigger: String!
+    destination: String!
+    active: Boolean!
+  }
+
+  type DeleteResult {
+    success: Boolean!
+  }
+
+  type ComplianceRecord {
+    id: ID!
+    name: String!
+    score: String!
+    risk: String!
+    lastAudit: String!
+  }
+
+  input ComplianceRecordInput {
+    id: ID
+    name: String!
+    score: String!
+    risk: String!
+    lastAudit: String!
+  }
+
   type Query {
     getGenome(countryCode: String!): GenomeResponse
     getDetailedGenome(countryCode: String!): DetailedGenomeResponse
@@ -237,6 +322,12 @@ export const typeDefs = `#graphql
     # Sandbox queries
     getCrisisSimulations(limit: Int): [CrisisSimulation!]!
     getCrisisSimulation(id: ID!): CrisisSimulation
+    # Settings queries
+    getSystemSettings: SystemSettings!
+    getSecurityClearances: [SecurityClearance!]!
+    getAccessTokens: [AccessToken!]!
+    getAlertRules: [AlertRule!]!
+    getComplianceRecords: [ComplianceRecord!]!
   }
 
   type Mutation {
@@ -248,6 +339,15 @@ export const typeDefs = `#graphql
     launchCrisisSimulation(crises: [String!]!, scenarioName: String): SimulationLaunchStatus!
     generateRecoveryPaths(simulationId: ID!, crises: [String!]!): RecoveryPaths!
     saveScenario(crises: [String!]!, scenarioName: String!): CrisisSimulation!
+    # Settings mutations
+    saveSystemSettings(input: SystemSettingsInput!): SystemSettings!
+    updateSecurityClearance(id: ID!, level: String, status: String): SecurityClearance!
+    generateAccessToken(tokenType: String!, environment: String!, permissions: String!, owner: String): AccessToken!
+    updateAccessToken(id: ID!, action: String!): AccessToken!
+    saveAlertRule(id: ID, name: String!, severity: String!, trigger: String!, destination: String!, active: Boolean!): AlertRule!
+    deleteAlertRule(id: ID!): DeleteResult!
+    saveComplianceRecord(input: ComplianceRecordInput!): ComplianceRecord!
+    deleteComplianceRecord(id: ID!): DeleteResult!
   }
 
   type Subscription {

@@ -89,6 +89,71 @@ class SovereignMindServiceStub:
                 request_serializer=services__pb2.RecoveryPathRequest.SerializeToString,
                 response_deserializer=services__pb2.RecoveryPathResponse.FromString,
                 _registered_method=True)
+        self.GetSystemSettings = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetSystemSettings',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.SystemSettingsProto.FromString,
+                _registered_method=True)
+        self.SaveSystemSettings = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SaveSystemSettings',
+                request_serializer=services__pb2.SystemSettingsProto.SerializeToString,
+                response_deserializer=services__pb2.SystemSettingsProto.FromString,
+                _registered_method=True)
+        self.GetSecurityClearances = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetSecurityClearances',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.ClearancesResponse.FromString,
+                _registered_method=True)
+        self.UpdateSecurityClearance = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/UpdateSecurityClearance',
+                request_serializer=services__pb2.UpdateClearanceRequest.SerializeToString,
+                response_deserializer=services__pb2.ClearanceProto.FromString,
+                _registered_method=True)
+        self.GetAccessTokens = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetAccessTokens',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.AccessTokensResponse.FromString,
+                _registered_method=True)
+        self.GenerateAccessToken = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GenerateAccessToken',
+                request_serializer=services__pb2.GenerateTokenRequest.SerializeToString,
+                response_deserializer=services__pb2.AccessTokenProto.FromString,
+                _registered_method=True)
+        self.UpdateAccessToken = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/UpdateAccessToken',
+                request_serializer=services__pb2.UpdateTokenRequest.SerializeToString,
+                response_deserializer=services__pb2.AccessTokenProto.FromString,
+                _registered_method=True)
+        self.GetAlertRules = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetAlertRules',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.AlertRulesResponse.FromString,
+                _registered_method=True)
+        self.SaveAlertRule = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SaveAlertRule',
+                request_serializer=services__pb2.SaveAlertRuleRequest.SerializeToString,
+                response_deserializer=services__pb2.AlertRuleProto.FromString,
+                _registered_method=True)
+        self.DeleteAlertRule = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/DeleteAlertRule',
+                request_serializer=services__pb2.DeleteAlertRuleRequest.SerializeToString,
+                response_deserializer=services__pb2.DeleteRuleResponse.FromString,
+                _registered_method=True)
+        self.GetComplianceRecords = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/GetComplianceRecords',
+                request_serializer=services__pb2.EmptyRequest.SerializeToString,
+                response_deserializer=services__pb2.GetComplianceRecordsResponse.FromString,
+                _registered_method=True)
+        self.SaveComplianceRecord = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/SaveComplianceRecord',
+                request_serializer=services__pb2.SaveComplianceRecordRequest.SerializeToString,
+                response_deserializer=services__pb2.ComplianceRecord.FromString,
+                _registered_method=True)
+        self.DeleteComplianceRecord = channel.unary_unary(
+                '/sovereignmind.SovereignMindService/DeleteComplianceRecord',
+                request_serializer=services__pb2.DeleteComplianceRecordRequest.SerializeToString,
+                response_deserializer=services__pb2.DeleteComplianceRecordResponse.FromString,
+                _registered_method=True)
 
 
 class SovereignMindServiceServicer:
@@ -169,6 +234,85 @@ class SovereignMindServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetSystemSettings(self, request, context):
+        """System Configuration & Settings
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SaveSystemSettings(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetSecurityClearances(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateSecurityClearance(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetAccessTokens(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GenerateAccessToken(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateAccessToken(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetAlertRules(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SaveAlertRule(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteAlertRule(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetComplianceRecords(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SaveComplianceRecord(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteComplianceRecord(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SovereignMindServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -226,6 +370,71 @@ def add_SovereignMindServiceServicer_to_server(servicer, server):
                     servicer.GenerateRecoveryPaths,
                     request_deserializer=services__pb2.RecoveryPathRequest.FromString,
                     response_serializer=services__pb2.RecoveryPathResponse.SerializeToString,
+            ),
+            'GetSystemSettings': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetSystemSettings,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.SystemSettingsProto.SerializeToString,
+            ),
+            'SaveSystemSettings': grpc.unary_unary_rpc_method_handler(
+                    servicer.SaveSystemSettings,
+                    request_deserializer=services__pb2.SystemSettingsProto.FromString,
+                    response_serializer=services__pb2.SystemSettingsProto.SerializeToString,
+            ),
+            'GetSecurityClearances': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetSecurityClearances,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.ClearancesResponse.SerializeToString,
+            ),
+            'UpdateSecurityClearance': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateSecurityClearance,
+                    request_deserializer=services__pb2.UpdateClearanceRequest.FromString,
+                    response_serializer=services__pb2.ClearanceProto.SerializeToString,
+            ),
+            'GetAccessTokens': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAccessTokens,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.AccessTokensResponse.SerializeToString,
+            ),
+            'GenerateAccessToken': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateAccessToken,
+                    request_deserializer=services__pb2.GenerateTokenRequest.FromString,
+                    response_serializer=services__pb2.AccessTokenProto.SerializeToString,
+            ),
+            'UpdateAccessToken': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateAccessToken,
+                    request_deserializer=services__pb2.UpdateTokenRequest.FromString,
+                    response_serializer=services__pb2.AccessTokenProto.SerializeToString,
+            ),
+            'GetAlertRules': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAlertRules,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.AlertRulesResponse.SerializeToString,
+            ),
+            'SaveAlertRule': grpc.unary_unary_rpc_method_handler(
+                    servicer.SaveAlertRule,
+                    request_deserializer=services__pb2.SaveAlertRuleRequest.FromString,
+                    response_serializer=services__pb2.AlertRuleProto.SerializeToString,
+            ),
+            'DeleteAlertRule': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteAlertRule,
+                    request_deserializer=services__pb2.DeleteAlertRuleRequest.FromString,
+                    response_serializer=services__pb2.DeleteRuleResponse.SerializeToString,
+            ),
+            'GetComplianceRecords': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetComplianceRecords,
+                    request_deserializer=services__pb2.EmptyRequest.FromString,
+                    response_serializer=services__pb2.GetComplianceRecordsResponse.SerializeToString,
+            ),
+            'SaveComplianceRecord': grpc.unary_unary_rpc_method_handler(
+                    servicer.SaveComplianceRecord,
+                    request_deserializer=services__pb2.SaveComplianceRecordRequest.FromString,
+                    response_serializer=services__pb2.ComplianceRecord.SerializeToString,
+            ),
+            'DeleteComplianceRecord': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteComplianceRecord,
+                    request_deserializer=services__pb2.DeleteComplianceRecordRequest.FromString,
+                    response_serializer=services__pb2.DeleteComplianceRecordResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -525,6 +734,357 @@ class SovereignMindService:
             '/sovereignmind.SovereignMindService/GenerateRecoveryPaths',
             services__pb2.RecoveryPathRequest.SerializeToString,
             services__pb2.RecoveryPathResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetSystemSettings(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetSystemSettings',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.SystemSettingsProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SaveSystemSettings(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SaveSystemSettings',
+            services__pb2.SystemSettingsProto.SerializeToString,
+            services__pb2.SystemSettingsProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetSecurityClearances(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetSecurityClearances',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.ClearancesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateSecurityClearance(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/UpdateSecurityClearance',
+            services__pb2.UpdateClearanceRequest.SerializeToString,
+            services__pb2.ClearanceProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetAccessTokens(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetAccessTokens',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.AccessTokensResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateAccessToken(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GenerateAccessToken',
+            services__pb2.GenerateTokenRequest.SerializeToString,
+            services__pb2.AccessTokenProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateAccessToken(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/UpdateAccessToken',
+            services__pb2.UpdateTokenRequest.SerializeToString,
+            services__pb2.AccessTokenProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetAlertRules(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetAlertRules',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.AlertRulesResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SaveAlertRule(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SaveAlertRule',
+            services__pb2.SaveAlertRuleRequest.SerializeToString,
+            services__pb2.AlertRuleProto.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteAlertRule(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/DeleteAlertRule',
+            services__pb2.DeleteAlertRuleRequest.SerializeToString,
+            services__pb2.DeleteRuleResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetComplianceRecords(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/GetComplianceRecords',
+            services__pb2.EmptyRequest.SerializeToString,
+            services__pb2.GetComplianceRecordsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SaveComplianceRecord(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/SaveComplianceRecord',
+            services__pb2.SaveComplianceRecordRequest.SerializeToString,
+            services__pb2.ComplianceRecord.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteComplianceRecord(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sovereignmind.SovereignMindService/DeleteComplianceRecord',
+            services__pb2.DeleteComplianceRecordRequest.SerializeToString,
+            services__pb2.DeleteComplianceRecordResponse.FromString,
             options,
             channel_credentials,
             insecure,

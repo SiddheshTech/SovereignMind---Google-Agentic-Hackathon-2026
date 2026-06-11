@@ -1,26 +1,39 @@
-import React, { useState } from 'react';
-import { Bell, Plus, Radio, ShieldAlert, Zap, Send, Phone, Activity, X, Trash2, Edit2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bell, Plus, Radio, ShieldAlert, Zap, Send, Phone, Activity, X, Trash2, Edit2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import {
+  fetchAlertRules,
+  saveAlertRule as apiSaveRule,
+  deleteAlertRule as apiDeleteRule,
+  fetchSystemSettings,
+  saveSystemSettings,
+} from '../lib/settingsApi';
+
+type Rule = {
+  id: string;
+  name: string;
+  severity: string;
+  trigger: string;
+  destination: string;
+  active: boolean;
+};
+
+type Channels = Record<string, boolean>;
 
 export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, type?: 'success' | 'warning' | 'error' | 'info') => void }) {
-  const [rules, setRules] = useState([
-    { id: 1, name: 'Critical Breach', severity: 'High', trigger: 'Unauthorized Access', destination: 'Director', active: true },
-    { id: 2, name: 'Node Failure', severity: 'Medium', trigger: 'Ping > 500ms', destination: 'Supervisor', active: true },
-    { id: 3, name: 'Data Extrusion Vol', severity: 'Medium', trigger: 'Bandwidth Spike', destination: 'Operator', active: false },
-    { id: 4, name: 'AI Containment', severity: 'Critical', trigger: 'Parameter Break', destination: 'Command Authority', active: true },
-  ]);
-
-  const [channels, setChannels] = useState({
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [channels, setChannels] = useState<Channels>({
     email: true,
     sms: false,
     signal: true,
     secureRadio: false,
     internalMessenger: true,
   });
-
+  const [loading, setLoading] = useState(true);
   const [simulating, setSimulating] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingRuleId, setEditingRuleId] = useState<number | null>(null);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [newRule, setNewRule] = useState({
     name: '',
@@ -29,14 +42,51 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
     destination: 'Operator'
   });
 
-  const handleToggleRule = (id: number) => {
-    setRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r));
-    addToast('Routing rule state updated.', 'success');
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [rulesData, settings] = await Promise.all([
+        fetchAlertRules(),
+        fetchSystemSettings(),
+      ]);
+      setRules(rulesData || []);
+      try {
+        const chJson = JSON.parse(settings.notificationChannelsJson || '{}');
+        if (Object.keys(chJson).length > 0) setChannels(chJson);
+      } catch (_) {}
+    } catch (err: any) {
+      addToast('Failed to load alert routing.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleToggleRule = async (id: string) => {
+    const rule = rules.find(r => r.id === id);
+    if (!rule) return;
+    setSaving(true);
+    try {
+      const updated = await apiSaveRule({ ...rule, active: !rule.active });
+      setRules(prev => prev.map(r => r.id === id ? { ...r, active: updated.active } : r));
+      addToast('Routing rule state updated.', 'success');
+    } catch (err: any) {
+      addToast('Toggle failed: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleToggleChannel = (key: keyof typeof channels) => {
-    setChannels(prev => ({ ...prev, [key]: !prev[key] }));
-    addToast(`${String(key).toUpperCase()} channel configuration updated.`, 'success');
+  const handleToggleChannel = async (key: string) => {
+    const updated = { ...channels, [key]: !channels[key] };
+    setChannels(updated);
+    try {
+      await saveSystemSettings({ notificationChannelsJson: JSON.stringify(updated) });
+      addToast(`${key.toUpperCase()} channel updated.`, 'success');
+    } catch (err: any) {
+      addToast('Failed to save channel config.', 'error');
+    }
   };
 
   const testChannel = (channelName: string) => {
@@ -55,32 +105,46 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
     }, 4000);
   };
 
-  const handleDeleteRule = (id: number) => {
-    setRules(prev => prev.filter(r => r.id !== id));
-    addToast('Routing rule deleted.', 'info');
+  const handleDeleteRule = async (id: string) => {
+    try {
+      await apiDeleteRule(id);
+      setRules(prev => prev.filter(r => r.id !== id));
+      addToast('Routing rule deleted.', 'info');
+    } catch (err: any) {
+      addToast('Delete failed: ' + err.message, 'error');
+    }
   };
 
-  const handleEditRule = (rule: typeof rules[0]) => {
+  const handleEditRule = (rule: Rule) => {
     setEditingRuleId(rule.id);
     setNewRule({ name: rule.name, severity: rule.severity, trigger: rule.trigger, destination: rule.destination });
     setShowCreateModal(true);
   };
 
-  const handleCreateRule = (e: React.FormEvent) => {
+  const handleCreateRule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRule.name) return;
-    
-    if (editingRuleId) {
-      setRules(prev => prev.map(r => r.id === editingRuleId ? { ...r, ...newRule } : r));
-      addToast('Routing rule updated.', 'success');
-    } else {
-      setRules([...rules, { ...newRule, id: Date.now(), active: true }]);
-      addToast('New routing rule configured.', 'success');
+    setSaving(true);
+    try {
+      const payload = editingRuleId
+        ? { id: editingRuleId, ...newRule, active: rules.find(r => r.id === editingRuleId)?.active ?? true }
+        : { ...newRule, active: true };
+      const saved = await apiSaveRule(payload);
+      if (editingRuleId) {
+        setRules(prev => prev.map(r => r.id === editingRuleId ? saved : r));
+        addToast('Routing rule updated.', 'success');
+      } else {
+        setRules(prev => [saved, ...prev]);
+        addToast('New routing rule configured.', 'success');
+      }
+    } catch (err: any) {
+      addToast('Save failed: ' + err.message, 'error');
+    } finally {
+      setSaving(false);
+      setShowCreateModal(false);
+      setEditingRuleId(null);
+      setNewRule({ name: '', severity: 'Medium', trigger: 'System Anomaly', destination: 'Operator' });
     }
-    
-    setShowCreateModal(false);
-    setEditingRuleId(null);
-    setNewRule({ name: '', severity: 'Medium', trigger: 'System Anomaly', destination: 'Operator' });
   };
 
   return (
@@ -92,6 +156,7 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
               <Zap size={16} className="text-amber-400" /> Routing Rules
+              {loading && <Loader2 size={14} className="animate-spin text-gray-400 ml-2" />}
             </h3>
             <button 
               onClick={() => setShowCreateModal(true)}
@@ -129,6 +194,7 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
                   </button>
                   <button 
                     onClick={() => handleToggleRule(rule.id)}
+                    disabled={saving}
                     className={`w-10 h-5 rounded-full flex items-center shrink-0 transition-colors ml-2 ${rule.active ? 'bg-emerald-500' : 'bg-slate-700'}`}
                   >
                     <div className={`w-3.5 h-3.5 bg-white rounded-full transition-transform ${rule.active ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -136,6 +202,9 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
                 </div>
               </div>
             ))}
+            {!loading && rules.length === 0 && (
+              <div className="text-center text-gray-500 text-sm py-8">No routing rules configured.</div>
+            )}
           </div>
         </section>
 
@@ -153,7 +222,7 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
               { id: 'secureRadio', name: 'VLF Secure Radio', icon: Radio },
               { id: 'internalMessenger', name: 'Sovereign Messenger', icon: Bell },
             ].map((ch) => {
-              const active = channels[ch.id as keyof typeof channels];
+              const active = channels[ch.id] ?? false;
               const Icon = ch.icon;
               return (
                 <div key={ch.id} className="flex items-center justify-between py-2 border-b border-slate-800/50 last:border-0">
@@ -173,7 +242,7 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
                        Test Ping
                      </button>
                      <button 
-                       onClick={() => handleToggleChannel(ch.id as keyof typeof channels)}
+                       onClick={() => handleToggleChannel(ch.id)}
                        className={`w-8 h-4 rounded-full flex items-center shrink-0 transition-colors ${active ? 'bg-emerald-500' : 'bg-slate-700'}`}
                      >
                        <div className={`w-3 h-3 bg-white rounded-full transition-transform ${active ? 'translate-x-4' : 'translate-x-0.5'}`} />
@@ -226,7 +295,7 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
         </div>
       </section>
 
-      {/* Create Rule Modal */}
+      {/* Create/Edit Rule Modal */}
       <AnimatePresence>
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -239,7 +308,6 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
               <button 
                 onClick={() => { setShowCreateModal(false); setEditingRuleId(null); }}
                 className="absolute top-6 right-6 text-gray-500 hover:text-white transition-colors"
-                title="Press Esc to close"
               >
                 <X size={20} />
               </button>
@@ -280,7 +348,8 @@ export function SettingsAlertRouting({ addToast }: { addToast: (msg: string, typ
 
                 <div className="pt-4 mt-2 border-t border-slate-800 flex justify-end gap-3">
                   <button type="button" onClick={() => { setShowCreateModal(false); setEditingRuleId(null); }} className="px-4 py-2 bg-slate-800 text-gray-300 rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors">Cancel</button>
-                  <button type="submit" className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-pink-500/20">
+                  <button type="submit" disabled={saving} className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-pink-500/20 flex items-center gap-2 disabled:opacity-50">
+                    {saving && <Loader2 size={14} className="animate-spin" />}
                     {editingRuleId ? 'Save Changes' : 'Deploy Rule'}
                   </button>
                 </div>

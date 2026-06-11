@@ -50,6 +50,7 @@ from app.services.constitutional_layer import constitutional_layer
 from app.services.sandbox_engine import sandbox_engine
 from app.services.procurement_autopilot import procurement_autopilot
 from app.eval.optimizer import prompt_optimizer
+from app.services.settings_manager import settings_manager
 
 class SovereignMindServicer:
   """
@@ -217,7 +218,6 @@ class SovereignMindServicer:
       evaluation_report=res["evaluation_report"]
     )
 
-<<<<<<< HEAD
   async def RunCrisisScenario(self, request, context):
     print(f"📡 [gRPC] RunCrisisScenario called for crises: {list(request.crises)}")
     res = await sandbox_engine.run_crisis_scenario(
@@ -371,7 +371,6 @@ class SovereignMindServicer:
       overall_recommendation=res.get("overallRecommendation", "")
     )
 
-=======
   async def CalculateSimilarity(self, request, context):
     print(f"📡 [gRPC] CalculateSimilarity called for: {request.country_code}")
     
@@ -383,7 +382,223 @@ class SovereignMindServicer:
     ]
     
     return services_pb2.SimilarityResponse(results=results)
->>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
+
+  async def GetSystemSettings(self, request, context):
+    print("📡 [gRPC] GetSystemSettings called")
+    s = settings_manager.get_system_settings()
+    return services_pb2.SystemSettingsProto(
+      operator_name=s["operator_name"],
+      operator_id=s["operator_id"],
+      operator_institution=s["operator_institution"],
+      operator_role=s["operator_role"],
+      operator_toggles_json=s["operator_toggles_json"],
+      model_processing_bound=s["model_processing_bound"],
+      clearance_matrix_json=s["clearance_matrix_json"],
+      active_region=s["active_region"],
+      storage_policies_json=s["storage_policies_json"],
+      processing_boundary=s["processing_boundary"],
+      theme=s["theme"],
+      telemetry_toggles_json=s["telemetry_toggles_json"],
+      notification_channels_json=s["notification_channels_json"],
+      network_protocols_json=s["network_protocols_json"],
+      network_policies_json=s["network_policies_json"]
+    )
+
+  async def SaveSystemSettings(self, request, context):
+    print("📡 [gRPC] SaveSystemSettings called")
+    updates = {}
+    for f in request.ListFields():
+      field_name = f[0].name
+      field_value = f[1]
+      updates[field_name] = field_value
+      
+    s = settings_manager.save_system_settings(updates)
+    return services_pb2.SystemSettingsProto(
+      operator_name=s["operator_name"],
+      operator_id=s["operator_id"],
+      operator_institution=s["operator_institution"],
+      operator_role=s["operator_role"],
+      operator_toggles_json=s["operator_toggles_json"],
+      model_processing_bound=s["model_processing_bound"],
+      clearance_matrix_json=s["clearance_matrix_json"],
+      active_region=s["active_region"],
+      storage_policies_json=s["storage_policies_json"],
+      processing_boundary=s["processing_boundary"],
+      theme=s["theme"],
+      telemetry_toggles_json=s["telemetry_toggles_json"],
+      notification_channels_json=s["notification_channels_json"],
+      network_protocols_json=s["network_protocols_json"],
+      network_policies_json=s["network_policies_json"]
+    )
+
+  async def GetSecurityClearances(self, request, context):
+    print("📡 [gRPC] GetSecurityClearances called")
+    clearances = settings_manager.get_clearances()
+    protos = [
+      services_pb2.ClearanceProto(
+        id=c["id"],
+        name=c["name"],
+        service_id=c["service_id"],
+        level=c["level"],
+        status=c["status"],
+        expiry=c["expiry"]
+      ) for c in clearances
+    ]
+    return services_pb2.ClearancesResponse(clearances=protos)
+
+  async def UpdateSecurityClearance(self, request, context):
+    print(f"📡 [gRPC] UpdateSecurityClearance called for operator {request.id}")
+    c = settings_manager.update_clearance(
+      id=request.id,
+      level=request.level if request.level else None,
+      status=request.status if request.status else None
+    )
+    return services_pb2.ClearanceProto(
+      id=c.get("id", ""),
+      name=c.get("name", ""),
+      service_id=c.get("service_id", ""),
+      level=c.get("level", ""),
+      status=c.get("status", ""),
+      expiry=c.get("expiry", "")
+    )
+
+  async def GetAccessTokens(self, request, context):
+    print("📡 [gRPC] GetAccessTokens called")
+    tokens = settings_manager.get_tokens()
+    protos = [
+      services_pb2.AccessTokenProto(
+        id=t["id"],
+        owner=t["owner"],
+        token_type=t["token_type"],
+        created=t["created"],
+        last_used=t["last_used"],
+        status=t["status"]
+      ) for t in tokens
+    ]
+    return services_pb2.AccessTokensResponse(tokens=protos)
+
+  async def GenerateAccessToken(self, request, context):
+    print("📡 [gRPC] GenerateAccessToken called")
+    t = settings_manager.generate_token(
+      token_type=request.token_type,
+      environment=request.environment,
+      permissions=request.permissions,
+      owner=request.owner if request.owner else None
+    )
+    return services_pb2.AccessTokenProto(
+      id=t["id"],
+      owner=t["owner"],
+      token_type=t["token_type"],
+      created=t["created"],
+      last_used=t["last_used"],
+      status=t["status"]
+    )
+
+  async def UpdateAccessToken(self, request, context):
+    print(f"📡 [gRPC] UpdateAccessToken called for token {request.id}")
+    t = settings_manager.update_token(id=request.id, action=request.action)
+    return services_pb2.AccessTokenProto(
+      id=t.get("id", ""),
+      owner=t.get("owner", ""),
+      token_type=t.get("token_type", ""),
+      created=t.get("created", ""),
+      last_used=t.get("last_used", ""),
+      status=t.get("status", "")
+    )
+
+  async def GetAlertRules(self, request, context):
+    print("📡 [gRPC] GetAlertRules called")
+    rules = settings_manager.get_alert_rules()
+    protos = [
+      services_pb2.AlertRuleProto(
+        id=r["id"],
+        name=r["name"],
+        severity=r["severity"],
+        trigger=r["trigger"],
+        destination=r["destination"],
+        active=r["active"]
+      ) for r in rules
+    ]
+    return services_pb2.AlertRulesResponse(rules=protos)
+
+  async def SaveAlertRule(self, request, context):
+    print("📡 [gRPC] SaveAlertRule called")
+    r = settings_manager.save_alert_rule(
+      id=request.id if request.id else None,
+      name=request.name,
+      severity=request.severity,
+      trigger=request.trigger,
+      destination=request.destination,
+      active=request.active
+    )
+    return services_pb2.AlertRuleProto(
+      id=r["id"],
+      name=r["name"],
+      severity=r["severity"],
+      trigger=r["trigger"],
+      destination=r["destination"],
+      active=r["active"]
+    )
+
+  async def DeleteAlertRule(self, request, context):
+    try:
+        success = settings_manager.delete_alert_rule(request.id)
+        return services_pb2.DeleteRuleResponse(success=success)
+    except Exception as e:
+        context.set_code(grpc.StatusCode.INTERNAL)
+        context.set_details(str(e))
+        return services_pb2.DeleteRuleResponse(success=False)
+
+  # ── COMPLIANCE RECORDS ──────────────────────────────────────────────────
+
+  async def GetComplianceRecords(self, request, context):
+    try:
+        records = settings_manager.get_compliance_records()
+        proto_records = [
+            services_pb2.ComplianceRecord(
+                id=r.get("id", ""),
+                name=r.get("name", ""),
+                score=r.get("score", ""),
+                risk=r.get("risk", ""),
+                last_audit=r.get("last_audit", "")
+            )
+            for r in records
+        ]
+        return services_pb2.GetComplianceRecordsResponse(records=proto_records)
+    except Exception as e:
+        context.set_code(grpc.StatusCode.INTERNAL)
+        context.set_details(str(e))
+        return services_pb2.GetComplianceRecordsResponse()
+
+  async def SaveComplianceRecord(self, request, context):
+    try:
+        r = settings_manager.save_compliance_record(
+            id=request.id if request.id else None,
+            name=request.name,
+            score=request.score,
+            risk=request.risk,
+            last_audit=request.last_audit
+        )
+        return services_pb2.ComplianceRecord(
+            id=r.get("id", ""),
+            name=r.get("name", ""),
+            score=r.get("score", ""),
+            risk=r.get("risk", ""),
+            last_audit=r.get("last_audit", "")
+        )
+    except Exception as e:
+        context.set_code(grpc.StatusCode.INTERNAL)
+        context.set_details(str(e))
+        return services_pb2.ComplianceRecord()
+
+  async def DeleteComplianceRecord(self, request, context):
+    try:
+        success = settings_manager.delete_compliance_record(request.id)
+        return services_pb2.DeleteComplianceRecordResponse(success=success)
+    except Exception as e:
+        context.set_code(grpc.StatusCode.INTERNAL)
+        context.set_details(str(e))
+        return services_pb2.DeleteComplianceRecordResponse(success=False)
 
 async def serve_grpc():
   server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))

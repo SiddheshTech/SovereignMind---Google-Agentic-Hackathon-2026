@@ -12,7 +12,8 @@ export function initWebSocketServer(server: Server) {
 
   server.on('upgrade', (request, socket, head) => {
     const url = request.url || '';
-    if (url === '/ws/sandbox' || url === '/ws/authority-maps' || url === '/ws/sandbox-ticks') {
+    const allowedPaths = ['/ws/sandbox', '/ws/authority-maps', '/ws/sandbox-ticks', '/ws/settings'];
+    if (allowedPaths.includes(url)) {
       wss?.handleUpgrade(request, socket, head, (ws) => {
         wss?.emit('connection', ws, request);
       });
@@ -26,10 +27,7 @@ export function initWebSocketServer(server: Server) {
     clients.add(ws);
 
     ws.on('message', (message) => {
-<<<<<<< HEAD
       console.log(`Received message from client on ${pathname}: ${message}`);
-=======
-      console.log(`Received message from client: ${message}`);
       try {
         const parsed = JSON.parse(message.toString());
         if (parsed.type === 'RUN_GLOBAL_GENOMIC_SCAN') {
@@ -40,7 +38,6 @@ export function initWebSocketServer(server: Server) {
       } catch (e) {
         // ignore non-json
       }
->>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
     });
 
     ws.on('close', () => {
@@ -53,7 +50,9 @@ export function initWebSocketServer(server: Server) {
       ? 'Authority Maps'
       : pathname === '/ws/sandbox-ticks'
         ? 'Sandbox Ticks'
-        : 'Sandbox';
+        : pathname === '/ws/settings'
+          ? 'Settings'
+          : 'Sandbox';
     ws.send(JSON.stringify({ type: 'INFO', message: `Connected to SovereignMind Real-time ${label} Stream` }));
   });
 }

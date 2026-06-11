@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { Globe, Shield, Wifi, Zap, Activity, HardDrive, CheckCircle2, AlertCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Globe, Shield, Wifi, Zap, Activity, HardDrive, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { fetchSystemSettings, saveSystemSettings } from '../lib/settingsApi';
+
+type Protocols = { https: boolean; mesh: boolean; quantum: boolean; satellite: boolean; tunnel: boolean; };
+type Sliders = { encryption: number; packetInspection: number; telemetry: number; threatDetection: number; };
 
 export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string, type?: 'success' | 'warning' | 'error' | 'info') => void }) {
-  const [protocols, setProtocols] = useState({
+  const [protocols, setProtocols] = useState<Protocols>({
     https: true,
     mesh: true,
     quantum: false,
@@ -11,7 +14,7 @@ export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string,
     tunnel: false,
   });
 
-  const [sliders, setSliders] = useState({
+  const [sliders, setSliders] = useState<Sliders>({
     encryption: 75,
     packetInspection: 100,
     telemetry: 50,
@@ -19,15 +22,58 @@ export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string,
   });
 
   const [testResult, setTestResult] = useState<{ running: boolean, log: string[], final?: string } | null>(null);
+  const [loading, setLoading] = useState(true);
   const [actionState, setActionState] = useState<'idle' | 'saving'>('idle');
 
-  const handleToggleProtocol = (key: keyof typeof protocols) => {
-    setProtocols(prev => ({ ...prev, [key]: !prev[key] }));
-    addToast(`Protocol ${String(key).toUpperCase()} state changed. Re-establishing handshakes.`, 'info');
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const s = await fetchSystemSettings();
+      try {
+        const np = JSON.parse(s.networkProtocolsJson || '{}');
+        if (Object.keys(np).length > 0) setProtocols(prev => ({ ...prev, ...np }));
+      } catch (_) {}
+      try {
+        const np2 = JSON.parse(s.networkPoliciesJson || '{}');
+        if (Object.keys(np2).length > 0) setSliders(prev => ({ ...prev, ...np2 }));
+      } catch (_) {}
+    } catch (err: any) {
+      addToast('Failed to load network settings.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleToggleProtocol = async (key: keyof Protocols) => {
+    const updated = { ...protocols, [key]: !protocols[key] };
+    setProtocols(updated);
+    try {
+      await saveSystemSettings({ networkProtocolsJson: JSON.stringify(updated) });
+      addToast(`Protocol ${String(key).toUpperCase()} state changed.`, 'info');
+    } catch (err: any) {
+      addToast('Failed to save protocol state.', 'error');
+    }
   };
 
-  const handleSliderChange = (key: keyof typeof sliders, val: number) => {
+  const handleSliderChange = (key: keyof Sliders, val: number) => {
     setSliders(prev => ({ ...prev, [key]: val }));
+  };
+
+  const handleSaveProtocolConfig = async () => {
+    setActionState('saving');
+    try {
+      await saveSystemSettings({
+        networkProtocolsJson: JSON.stringify(protocols),
+        networkPoliciesJson: JSON.stringify(sliders),
+      });
+      addToast('Protocol configuration saved and synchronized globally.', 'success');
+    } catch (err: any) {
+      addToast('Failed to save configuration: ' + err.message, 'error');
+    } finally {
+      setActionState('idle');
+    }
   };
 
   const runTest = (testName: string) => {
@@ -53,6 +99,15 @@ export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string,
     }, 2000);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-pink-400" size={32} />
+        <span className="ml-3 text-gray-400 text-sm">Loading network settings…</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
@@ -70,13 +125,13 @@ export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string,
             { id: 'satellite', name: 'Satellite Uplink', desc: 'LEO Constellation', icon: Activity },
             { id: 'tunnel', name: 'Enclave Tunnel', desc: 'Deep IPSEC VPN', icon: HardDrive },
           ].map(p => {
-            const active = protocols[p.id as keyof typeof protocols];
+            const active = protocols[p.id as keyof Protocols];
             const Icon = p.icon;
             
             return (
               <div 
                 key={p.id} 
-                onClick={() => handleToggleProtocol(p.id as keyof typeof protocols)}
+                onClick={() => handleToggleProtocol(p.id as keyof Protocols)}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
                   active ? 'bg-pink-900/20 border-pink-500/50 hover:border-pink-400' : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
                 }`}
@@ -121,14 +176,13 @@ export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string,
                 >
                   <div className={`w-3 h-3 rounded-full ${node.color} shadow-[0_0_10px_currentColor]`} />
                 </div>
-                {/* SVG Lines connecting nodes to center */}
                 <svg className="absolute inset-0 w-full h-full z-10 opacity-30">
                   <path d={node.line} stroke="currentColor" className="text-emerald-500" strokeWidth="2" strokeDasharray="4 4" />
                 </svg>
               </React.Fragment>
             ))}
 
-            {/* Simulated Pan/Zoom controls visual only */}
+            {/* Simulated controls */}
             <div className="absolute bottom-4 right-4 flex gap-2 z-30">
               <div className="w-6 h-6 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-xs text-white scale-110 pointer-events-auto cursor-pointer leading-none pb-0.5 hover:bg-slate-700">+</div>
               <div className="w-6 h-6 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-xs text-white scale-110 pointer-events-auto cursor-pointer leading-none pb-0.5 hover:bg-slate-700">-</div>
@@ -149,20 +203,20 @@ export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string,
               { id: 'telemetry', label: 'Network Telemetry Depth' },
               { id: 'threatDetection', label: 'Heuristic Threat Detection' },
             ].map((slider) => {
-              const val = sliders[slider.id as keyof typeof sliders];
+              const val = sliders[slider.id as keyof Sliders];
               return (
                 <div key={slider.id}>
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-xs font-bold text-gray-300">{slider.label}</label>
                     <span className="text-[10px] font-mono text-pink-400">{val}%</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden flex items-center">
+                  <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden relative flex items-center">
                     <input 
                       type="range" 
                       min="0" max="100" 
                       value={val} 
-                      onChange={(e) => handleSliderChange(slider.id as keyof typeof sliders, parseInt(e.target.value))}
-                      className="w-full h-full opacity-0 absolute cursor-pointer"
+                      onChange={(e) => handleSliderChange(slider.id as keyof Sliders, parseInt(e.target.value))}
+                      className="w-full h-full opacity-0 absolute cursor-pointer z-10"
                     />
                     <div className="h-full bg-gradient-to-r from-pink-600 to-purple-500 rounded-full" style={{ width: `${val}%` }} />
                   </div>
@@ -207,7 +261,7 @@ export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string,
           ) : (
             <div className="space-y-1 text-emerald-500">
               {testResult.log.map((line, i) => (
-                <div key={i}>{'>'} {line}</div>
+                <div key={i}>&gt; {line}</div>
               ))}
               {testResult.running && (
                 <div className="flex items-center gap-2 mt-2 text-slate-500">
@@ -229,13 +283,7 @@ export function SettingsNetworkProtocols({ addToast }: { addToast: (msg: string,
          <p className="text-[10px] text-gray-500 mb-4 sm:mb-0">Bandwidth caps apply to non-emergency scenarios.</p>
          <button 
            disabled={testResult?.running || actionState === 'saving'}
-           onClick={() => {
-             setActionState('saving');
-             setTimeout(() => {
-                setActionState('idle');
-                addToast('Protocol configuration saved and synchronized globally.', 'success');
-             }, 1000);
-           }} 
+           onClick={handleSaveProtocolConfig} 
            className="w-full sm:w-auto px-6 py-2.5 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-pink-500/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
          >
            {actionState === 'saving' ? <Activity size={14} className="animate-spin" /> : null}

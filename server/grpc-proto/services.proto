@@ -31,6 +31,25 @@ service SovereignMindService {
 
   // Sandbox: Recovery Path Generation (AI-powered)
   rpc GenerateRecoveryPaths (RecoveryPathRequest) returns (RecoveryPathResponse);
+
+  // System Configuration & Settings
+  rpc GetSystemSettings (EmptyRequest) returns (SystemSettingsProto);
+  rpc SaveSystemSettings (SystemSettingsProto) returns (SystemSettingsProto);
+
+  rpc GetSecurityClearances (EmptyRequest) returns (ClearancesResponse);
+  rpc UpdateSecurityClearance (UpdateClearanceRequest) returns (ClearanceProto);
+
+  rpc GetAccessTokens (EmptyRequest) returns (AccessTokensResponse);
+  rpc GenerateAccessToken (GenerateTokenRequest) returns (AccessTokenProto);
+  rpc UpdateAccessToken (UpdateTokenRequest) returns (AccessTokenProto);
+
+  rpc GetAlertRules (EmptyRequest) returns (AlertRulesResponse);
+  rpc SaveAlertRule(SaveAlertRuleRequest) returns (AlertRuleProto);
+  rpc DeleteAlertRule(DeleteAlertRuleRequest) returns (DeleteRuleResponse);
+
+  rpc GetComplianceRecords(EmptyRequest) returns (GetComplianceRecordsResponse);
+  rpc SaveComplianceRecord(SaveComplianceRecordRequest) returns (ComplianceRecord);
+  rpc DeleteComplianceRecord(DeleteComplianceRecordRequest) returns (DeleteComplianceRecordResponse);
 }
 
 // Sovereignty Genome Messages
@@ -156,7 +175,6 @@ message PromptOptimizeResponse {
   string evaluation_report = 4;
 }
 
-<<<<<<< HEAD
 message AuthorityProposalRequest {
   string title = 1;
 }
@@ -276,7 +294,8 @@ message RecoveryPathResponse {
   RecoveryScenarioProto expected = 2;
   RecoveryScenarioProto worst_case = 3;
   string overall_recommendation = 4;
-=======
+}
+
 message SimilarityRequest {
   string country_code = 1;
 }
@@ -288,5 +307,130 @@ message SimilarityResult {
 
 message SimilarityResponse {
   repeated SimilarityResult results = 1;
->>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
+}
+
+message EmptyRequest {}
+
+message SystemSettingsProto {
+  string operator_name = 1;
+  string operator_id = 2;
+  string operator_institution = 3;
+  string operator_role = 4;
+  string operator_toggles_json = 5;
+  string model_processing_bound = 6;
+  string clearance_matrix_json = 7;
+  string active_region = 8;
+  string storage_policies_json = 9;
+  string processing_boundary = 10;
+  string theme = 11;
+  string telemetry_toggles_json = 12;
+  string notification_channels_json = 13;
+  string network_protocols_json = 14;
+  string network_policies_json = 15;
+}
+
+message ClearanceProto {
+  string id = 1;
+  string name = 2;
+  string service_id = 3;
+  string level = 4;
+  string status = 5;
+  string expiry = 6;
+}
+
+message ClearancesResponse {
+  repeated ClearanceProto clearances = 1;
+}
+
+message UpdateClearanceRequest {
+  string id = 1;
+  string level = 2;
+  string status = 3;
+}
+
+message AccessTokenProto {
+  string id = 1;
+  string owner = 2;
+  string token_type = 3;
+  string created = 4;
+  string last_used = 5;
+  string status = 6;
+}
+
+message AccessTokensResponse {
+  repeated AccessTokenProto tokens = 1;
+}
+
+message GenerateTokenRequest {
+  string token_type = 1;
+  string environment = 2;
+  string permissions = 3;
+  string owner = 4;
+}
+
+message UpdateTokenRequest {
+  string id = 1;
+  string action = 2;
+}
+
+message AlertRuleProto {
+  string id = 1;
+  string name = 2;
+  string severity = 3;
+  string trigger = 4;
+  string destination = 5;
+  bool active = 6;
+}
+
+message AlertRulesResponse {
+  repeated AlertRuleProto rules = 1;
+}
+
+message SaveAlertRuleRequest {
+  string id = 1;
+  string name = 2;
+  string severity = 3;
+  string trigger = 4;
+  string destination = 5;
+  bool active = 6;
+}
+
+message DeleteAlertRuleRequest {
+  string id = 1;
+}
+
+message DeleteRuleResponse {
+  bool success = 1;
+}
+
+// ==========================================
+// COMPLIANCE RECORDS MESSAGES
+// ==========================================
+
+message ComplianceRecord {
+  string id = 1;
+  string name = 2;
+  string score = 3;
+  string risk = 4;
+  string last_audit = 5;
+}
+
+message GetComplianceRecordsResponse {
+  repeated ComplianceRecord records = 1;
+}
+
+message SaveComplianceRecordRequest {
+  string id = 1;
+  string name = 2;
+  string score = 3;
+  string risk = 4;
+  string last_audit = 5;
+}
+
+message DeleteComplianceRecordRequest {
+  string id = 1;
+}
+
+message DeleteComplianceRecordResponse {
+  bool success = 1;
 }

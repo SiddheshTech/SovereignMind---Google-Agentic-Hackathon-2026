@@ -1,0 +1,31 @@
+{
+  "system_settings": {
+    "operator_name": "",
+    "operator_id": "",
+    "operator_institution": "",
+    "operator_role": "",
+    "operator_toggles_json": "{\"tfa\": false, \"e2e\": false, \"geo\": false, \"antigravity\": false, \"telemetry\": false}",
+    "model_processing_bound": "Hybrid Secure Cloud (Default)",
+    "clearance_matrix_json": "{}",
+    "active_region": "",
+    "storage_policies_json": "{\"localization\": false, \"replication\": false, \"sovereignBackups\": false, \"immutableArchives\": false}",
+    "processing_boundary": "Trusted Regions",
+    "theme": "Sovereign Dark",
+    "telemetry_toggles_json": "{\"usageAnalytics\": false, \"crashReports\": false, \"behavioralMetrics\": false, \"heatmaps\": false, \"diagnosticLogs\": false}",
+    "notification_channels_json": "{\"email\": false, \"sms\": false, \"signal\": false, \"secureRadio\": false, \"internalMessenger\": false}",
+    "network_protocols_json": "{\"https\": false, \"mesh\": false, \"quantum\": false, \"satellite\": false, \"tunnel\": false}",
+    "network_policies_json": "{\"encryption\": 0, \"packetInspection\": 0, \"telemetry\": 0, \"threatDetection\": 0}"
+  },
+  "clearances": [],
+  "tokens": [],
+  "alert_rules": [],
+  "compliance_records": [
+    {
+      "id": "1781170866608",
+      "name": "GDPR",
+      "score": "99%",
+      "risk": "Low",
+      "last_audit": "2026-05-12"
+    }
+  ]
+}

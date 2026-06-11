@@ -4,15 +4,32 @@ import {
   runConstitutionalEvaluation,
   draftEmergencyContract,
   optimizePrompt,
-<<<<<<< HEAD
   evaluateAuthorityProposal,
   runCrisisScenario,
   runDetailedSimulation,
   generateRecoveryPaths,
+  calculateSimilarity,
+  getSystemSettings,
+  saveSystemSettings,
+  getSecurityClearances,
+  updateSecurityClearance,
+  getAccessTokens,
+  generateAccessToken,
+  updateAccessToken,
+  getAlertRules,
+  saveAlertRule,
+  deleteAlertRule,
+  getComplianceRecords,
+  saveComplianceRecord,
+  deleteComplianceRecord,
 } from '../grpc/client';
 import { triggerSandboxStream, broadcast, triggerDetailedSimStream } from '../websockets/simulation_stream';
 import { AuthorityProposal } from '../models/AuthorityProposal';
 import { CrisisSimulation } from '../models/CrisisSimulation';
+import { CivilizationGenome } from '../models/CivilizationGenome';
+import connectDB from '../config/db';
+
+connectDB();
 
 /** Helper to convert gRPC CrisisScenarioResponse to GraphQL shape */
 function formatSimulation(doc: any) {
@@ -116,15 +133,7 @@ function grpcScenarioToDoc(res: any) {
     cascadeLinks: res.cascade_links || [],
   };
 }
-=======
-  calculateSimilarity
-} from '../grpc/client';
-import { triggerSandboxStream } from '../websockets/simulation_stream';
-import { CivilizationGenome } from '../models/CivilizationGenome';
-import connectDB from '../config/db';
 
-connectDB();
->>>>>>> 47de15ed88e95b0d0c932a02ad7b07ce89b50745
 
 export const resolvers = {
   Query: {
@@ -216,6 +225,84 @@ export const resolvers = {
         throw err;
       }
     },
+
+    // ── Settings Queries ───────────────────────────────────────────────────────
+    getSystemSettings: async () => {
+      try {
+        const s = await getSystemSettings();
+        return {
+          operatorName: s.operator_name,
+          operatorId: s.operator_id,
+          operatorInstitution: s.operator_institution,
+          operatorRole: s.operator_role,
+          operatorTogglesJson: s.operator_toggles_json,
+          modelProcessingBound: s.model_processing_bound,
+          clearanceMatrixJson: s.clearance_matrix_json,
+          activeRegion: s.active_region,
+          storagePoliciesJson: s.storage_policies_json,
+          processingBoundary: s.processing_boundary,
+          theme: s.theme,
+          telemetryTogglesJson: s.telemetry_toggles_json,
+          notificationChannelsJson: s.notification_channels_json,
+          networkProtocolsJson: s.network_protocols_json,
+          networkPoliciesJson: s.network_policies_json,
+        };
+      } catch (err) {
+        console.error('GraphQL Error getSystemSettings:', err);
+        throw err;
+      }
+    },
+
+    getSecurityClearances: async () => {
+      try {
+        const res = await getSecurityClearances();
+        return (res.clearances || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          serviceId: c.service_id,
+          level: c.level,
+          status: c.status,
+          expiry: c.expiry,
+        }));
+      } catch (err) {
+        console.error('GraphQL Error getSecurityClearances:', err);
+        throw err;
+      }
+    },
+
+    getAccessTokens: async () => {
+      try {
+        const res = await getAccessTokens();
+        return (res.tokens || []).map((t: any) => ({
+          id: t.id,
+          owner: t.owner,
+          tokenType: t.token_type,
+          created: t.created,
+          lastUsed: t.last_used,
+          status: t.status,
+        }));
+      } catch (err) {
+        console.error('GraphQL Error getAccessTokens:', err);
+        throw err;
+      }
+    },
+
+    getAlertRules: async () => {
+      try {
+        const res = await getAlertRules();
+        return res?.rules || [];
+      } catch (err: any) {
+        throw new Error(`gRPC getAlertRules failed: ${err.message}`);
+      }
+    },
+    getComplianceRecords: async () => {
+      try {
+        const res = await getComplianceRecords();
+        return res; // Already maps to records array in client.ts
+      } catch (err: any) {
+        throw new Error(`gRPC getComplianceRecords failed: ${err.message}`);
+      }
+    }
   },
 
   Mutation: {
@@ -413,6 +500,156 @@ export const resolvers = {
         throw err;
       }
     },
+
+    // ── Settings Mutations ────────────────────────────────────────────────────
+    saveSystemSettings: async (_: any, { input }: { input: Record<string, any> }) => {
+      try {
+        // Map camelCase GraphQL input to snake_case for gRPC
+        const updates: Record<string, any> = {};
+        if (input.operatorName !== undefined) updates.operator_name = input.operatorName;
+        if (input.operatorId !== undefined) updates.operator_id = input.operatorId;
+        if (input.operatorInstitution !== undefined) updates.operator_institution = input.operatorInstitution;
+        if (input.operatorRole !== undefined) updates.operator_role = input.operatorRole;
+        if (input.operatorTogglesJson !== undefined) updates.operator_toggles_json = input.operatorTogglesJson;
+        if (input.modelProcessingBound !== undefined) updates.model_processing_bound = input.modelProcessingBound;
+        if (input.clearanceMatrixJson !== undefined) updates.clearance_matrix_json = input.clearanceMatrixJson;
+        if (input.activeRegion !== undefined) updates.active_region = input.activeRegion;
+        if (input.storagePoliciesJson !== undefined) updates.storage_policies_json = input.storagePoliciesJson;
+        if (input.processingBoundary !== undefined) updates.processing_boundary = input.processingBoundary;
+        if (input.theme !== undefined) updates.theme = input.theme;
+        if (input.telemetryTogglesJson !== undefined) updates.telemetry_toggles_json = input.telemetryTogglesJson;
+        if (input.notificationChannelsJson !== undefined) updates.notification_channels_json = input.notificationChannelsJson;
+        if (input.networkProtocolsJson !== undefined) updates.network_protocols_json = input.networkProtocolsJson;
+        if (input.networkPoliciesJson !== undefined) updates.network_policies_json = input.networkPoliciesJson;
+
+        const s = await saveSystemSettings(updates);
+        const result = {
+          operatorName: s.operator_name,
+          operatorId: s.operator_id,
+          operatorInstitution: s.operator_institution,
+          operatorRole: s.operator_role,
+          operatorTogglesJson: s.operator_toggles_json,
+          modelProcessingBound: s.model_processing_bound,
+          clearanceMatrixJson: s.clearance_matrix_json,
+          activeRegion: s.active_region,
+          storagePoliciesJson: s.storage_policies_json,
+          processingBoundary: s.processing_boundary,
+          theme: s.theme,
+          telemetryTogglesJson: s.telemetry_toggles_json,
+          notificationChannelsJson: s.notification_channels_json,
+          networkProtocolsJson: s.network_protocols_json,
+          networkPoliciesJson: s.network_policies_json,
+        };
+        broadcast({ type: 'SETTINGS_UPDATED', data: result }, '/ws/settings');
+        return result;
+      } catch (err) {
+        console.error('GraphQL Error saveSystemSettings:', err);
+        throw err;
+      }
+    },
+
+    updateSecurityClearance: async (_: any, { id, level, status }: { id: string; level?: string; status?: string }) => {
+      try {
+        const c = await updateSecurityClearance(id, level, status);
+        const result = {
+          id: c.id, name: c.name, serviceId: c.service_id,
+          level: c.level, status: c.status, expiry: c.expiry,
+        };
+        broadcast({ type: 'CLEARANCE_UPDATED', data: result }, '/ws/settings');
+        return result;
+      } catch (err) {
+        console.error('GraphQL Error updateSecurityClearance:', err);
+        throw err;
+      }
+    },
+
+    generateAccessToken: async (_: any, { tokenType, environment, permissions, owner }: any) => {
+      try {
+        const t = await generateAccessToken(tokenType, environment, permissions, owner);
+        const result = {
+          id: t.id, owner: t.owner, tokenType: t.token_type,
+          created: t.created, lastUsed: t.last_used, status: t.status,
+        };
+        broadcast({ type: 'TOKEN_GENERATED', data: result }, '/ws/settings');
+        return result;
+      } catch (err) {
+        console.error('GraphQL Error generateAccessToken:', err);
+        throw err;
+      }
+    },
+
+    updateAccessToken: async (_: any, { id, action }: { id: string; action: string }) => {
+      try {
+        const t = await updateAccessToken(id, action);
+        const result = {
+          id: t.id, owner: t.owner, tokenType: t.token_type,
+          created: t.created, lastUsed: t.last_used, status: t.status,
+        };
+        broadcast({ type: 'TOKEN_UPDATED', data: result }, '/ws/settings');
+        return result;
+      } catch (err) {
+        console.error('GraphQL Error updateAccessToken:', err);
+        throw err;
+      }
+    },
+
+    saveAlertRule: async (_: any, args: any) => {
+      try {
+        const r = await saveAlertRule({
+          id: args.id,
+          name: args.name,
+          severity: args.severity,
+          trigger: args.trigger,
+          destination: args.destination,
+          active: args.active,
+        });
+        const result = {
+          id: r.id, name: r.name, severity: r.severity,
+          trigger: r.trigger, destination: r.destination, active: r.active,
+        };
+        broadcast({ type: 'ALERT_RULE_SAVED', data: result }, '/ws/settings');
+        return result;
+      } catch (err) {
+        console.error('GraphQL Error saveAlertRule:', err);
+        throw err;
+      }
+    },
+
+    deleteAlertRule: async (_: any, { id }: { id: string }) => {
+      try {
+        const res = await deleteAlertRule(id);
+        broadcast({ type: 'ALERT_RULE_DELETED', id }, '/ws/settings');
+        return res;
+      } catch (err: any) {
+        throw new Error(`gRPC deleteAlertRule failed: ${err.message}`);
+      }
+    },
+    saveComplianceRecord: async (_: any, { input }: any) => {
+      try {
+        const args = {
+          id: input.id || '',
+          name: input.name,
+          score: input.score,
+          risk: input.risk,
+          last_audit: input.lastAudit
+        };
+        const record = await saveComplianceRecord(args);
+        const mapped = { ...record, lastAudit: record.last_audit };
+        broadcast({ type: 'COMPLIANCE_RECORD_SAVED', record: mapped }, '/ws/settings');
+        return mapped;
+      } catch (err: any) {
+        throw new Error(`gRPC saveComplianceRecord failed: ${err.message}`);
+      }
+    },
+    deleteComplianceRecord: async (_: any, { id }: { id: string }) => {
+      try {
+        const res = await deleteComplianceRecord(id);
+        broadcast({ type: 'COMPLIANCE_RECORD_DELETED', id }, '/ws/settings');
+        return res;
+      } catch (err: any) {
+        throw new Error(`gRPC deleteComplianceRecord failed: ${err.message}`);
+      }
+    }
   },
 
   Subscription: {
