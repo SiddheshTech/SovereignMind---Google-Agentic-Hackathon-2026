@@ -35,6 +35,7 @@ export function MetricDetailDashboard({ metricId, onNavigate }: { metricId: stri
 
   useEffect(() => {
     const load = async () => {
+      if (!metricId) return;
       setLoading(true);
       try {
         const id = metricId.replace('metric-', '');
